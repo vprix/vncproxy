@@ -4,11 +4,11 @@
   * [常见问题](questions.md)
   * [版本更新记录](changelog.md)
 
-* Vnc代理
-* Recorder屏幕录像
-* Player 播放服务
-* Video 屏幕录像转视频
-* Screenshot 截图
+* 代理(Proxy)
+* 屏幕录像(Recorder)
+* 屏幕录像播放(Player)
+* 屏幕录像转视频(Video)
+* 截屏(Screenshot)
 
 * RFB协议详解
   - [远程帧缓冲协议](rfc6143/README.md)
