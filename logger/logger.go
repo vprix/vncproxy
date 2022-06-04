@@ -17,3 +17,7 @@ func Debug(v ...interface{}) {
 func Debugf(format string, v ...interface{}) {
 	defaultLogger.Debugf(format, v...)
 }
+
+func SetDebug(debug bool) {
+	defaultLogger.SetDebug(debug)
+}
