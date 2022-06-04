@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" data-noselect="" viewBox="0 0 500 600" width="1000" height="1200" preserveAspectRatio="none" version="1.1" class="svg-canvas"><defs/> <g id="background" data-noselect=""><rect fill="#FFFFFF" width="500" height="600" data-noselect=""/> <!----></g> <g id="shape_JZfIU9uh3q" transform="translate(1.672566547650007,-2.61744351656) rotate(0,247.89880912723,297.71866299245) scale(1,1)" filter="" style="opacity: 1;"><g><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="&#x56FE;&#x5C42;_1" x="0px" y="0px" viewBox="0 0 82.5999984741211 99.19999694824219" style="enable-background:new 0 0 82.5 99.2;" xml:space="preserve" width="500" height="600" class="style-removed" preserveAspectRatio="none" data-parent="shape_JZfIU9uh3q">
+
+<g>
+	<path d="M0,43.2c11.6-0.4,20.9-9.9,20.9-21.6C20.9,9.9,11.6,0.4,0,0V43.2z" fill="#9E503A" stroke-width="0"/>
+	<path d="M82.5,0C70.9,0.4,61.6,9.9,61.6,21.6c0,11.7,9.3,21.2,20.9,21.6V0z" fill="#570F16" stroke-width="0"/>
+	<path d="M71.4,99.2H11.1C5,99.2,0,94.2,0,88.1V16.7h82.5v71.4C82.5,94.2,77.5,99.2,71.4,99.2z" fill="#FFD45F" stroke-width="0"/>
+	<path d="M41.3,16.7v82.5h30.2c6.1,0,11.1-5,11.1-11.1V16.7H41.3z" fill="#FFAF6E" stroke-width="0"/>
+	<g>
+		<path d="M82.5,16.5v19.1c-19.8,2.9-35.8,17.2-41.2,36.1C35.8,52.8,19.8,38.5,0,35.6V16.5H82.5z" fill="#9E503A" stroke-width="0"/>
+		<path d="M82.5,16.5v19.1c-19.8,2.9-35.8,17.2-41.2,36.1V16.5H82.5z" fill="#570F16" stroke-width="0"/>
+	</g>
+	<g>
+		<g>
+			<circle cx="14.5" cy="63.1" r="6.3" fill="#570F16" stroke-width="0"/>
+			<path d="M14.5,57.1c3.3,0,6,2.7,6,6s-2.7,6-6,6s-6-2.7-6-6S11.2,57.1,14.5,57.1 M14.5,56.4c-3.7,0-6.7,3-6.7,6.7     s3,6.7,6.7,6.7s6.7-3,6.7-6.7S18.2,56.4,14.5,56.4L14.5,56.4z" fill="#9E503A" stroke-width="0"/>
+		</g>
+		<g>
+			<circle cx="68" cy="63.1" r="6.3" fill="#570F16" stroke-width="0"/>
+			<path d="M68,57.1c3.3,0,6,2.7,6,6s-2.7,6-6,6s-6-2.7-6-6S64.7,57.1,68,57.1 M68,56.4c-3.7,0-6.7,3-6.7,6.7     s3,6.7,6.7,6.7s6.7-3,6.7-6.7S71.7,56.4,68,56.4L68,56.4z" fill="#9E503A" stroke-width="0"/>
+		</g>
+	</g>
+</g>
+</svg></g></g></svg>
