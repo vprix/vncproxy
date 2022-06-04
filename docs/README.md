@@ -42,6 +42,12 @@
 * [vnc2video](https://github.com/amitbet/vnc2video)
 * [rfbproto](https://github.com/rfbproto/rfbproto)
 
+## 交流
+
+我在做该项目的过程中碰到了很多问题,。
+我建立了一个交流的微信群，大家在使用的过程中如果有疑问可以加我微信，我会给大家解答问题。
+
+![微信二维码](/images/5bb8dbe702ce04b0bdde8c26583b152.jpg)
 
 
 
