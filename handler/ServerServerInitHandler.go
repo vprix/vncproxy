@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/binary"
-	"github.com/vprix/vncproxy/logger"
+	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
 )
 

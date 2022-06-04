@@ -2,9 +2,9 @@ package player
 
 import (
 	"encoding/binary"
+	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
-	"github.com/vprix/vncproxy/logger"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
