@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/osgochina/dmicro/logger"
-	"github.com/vprix/vncproxy/recorder"
 	"github.com/vprix/vncproxy/rfb"
+	"github.com/vprix/vncproxy/vnc"
 	"time"
 )
 
 func main() {
 
-	reco := recorder.NewRecorder("D:\\code\\GolandProjects\\vprix-vnc\\abc.rbs",
+	reco := vnc.NewRecorder("D:\\code\\GolandProjects\\vprix-vnc\\abc.rbs",
 		nil,
 		rfb.TargetConfig{
 			Network:  "tcp",

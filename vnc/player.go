@@ -1,4 +1,4 @@
-package player
+package vnc
 
 import (
 	"encoding/binary"

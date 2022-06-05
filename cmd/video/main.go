@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
-	"github.com/vprix/vncproxy/video"
+	"github.com/vprix/vncproxy/vnc"
 	"time"
 )
 
 func main() {
 
-	v := video.NewVideo(nil,
+	v := vnc.NewVideo(nil,
 		rfb.TargetConfig{
 			Network:  "tcp",
 			Host:     "127.0.0.1",

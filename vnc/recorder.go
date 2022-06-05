@@ -1,4 +1,4 @@
-package recorder
+package vnc
 
 import (
 	"encoding/binary"

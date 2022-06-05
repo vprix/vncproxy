@@ -6,8 +6,8 @@ import (
 	"github.com/gogf/gf/text/gstr"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
-	"github.com/vprix/vncproxy/proxy"
 	"github.com/vprix/vncproxy/rfb"
+	"github.com/vprix/vncproxy/vnc"
 	"io"
 )
 
@@ -115,8 +115,8 @@ func main() {
 	})
 }
 
-func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *proxy.VncProxy {
-	p := proxy.NewVncProxy(svrCfg, cliCfg, targetCfg)
+func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *vnc.Proxy {
+	p := vnc.NewVncProxy(svrCfg, cliCfg, targetCfg)
 	go p.Start(conn)
 	return p
 }

@@ -1,4 +1,4 @@
-package proxy
+package vnc
 
 import (
 	"github.com/gogf/gf/util/gconv"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type VncProxy struct {
+type Proxy struct {
 	rfbSvrCfg              *rfb.ServerConfig      // proxy服务端监听vnc客户端的配置信息
 	rfbCliCfg              *rfb.ClientConfig      // proxy客户端连接vnc服务端的配置信息
 	targetConfig           rfb.TargetConfig       // vnc服务端的链接参数
@@ -28,9 +28,9 @@ type VncProxy struct {
 }
 
 // NewVncProxy 生成vnc proxy服务对象
-func NewVncProxy(svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *VncProxy {
+func NewVncProxy(svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *Proxy {
 	errorChan := make(chan error, 32)
-	vncProxy := &VncProxy{
+	vncProxy := &Proxy{
 		errorCh:                errorChan,
 		targetConfig:           targetCfg,
 		closed:                 make(chan struct{}),
@@ -69,7 +69,7 @@ func NewVncProxy(svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg r
 }
 
 // Start 启动
-func (that *VncProxy) Start(conn io.ReadWriteCloser) {
+func (that *Proxy) Start(conn io.ReadWriteCloser) {
 
 	that.rfbSvrCfg.Input = that.vncCli2ProxyMsgChan
 	that.rfbSvrCfg.Output = that.proxySvr2VncCliMsgChan
@@ -93,7 +93,7 @@ func (that *VncProxy) Start(conn io.ReadWriteCloser) {
 	return
 }
 
-func (that *VncProxy) handleIO() {
+func (that *Proxy) handleIO() {
 
 	for {
 		select {
@@ -159,7 +159,7 @@ func (that *VncProxy) handleIO() {
 }
 
 // Handle 建立远程链接
-func (that *VncProxy) Handle(sess rfb.ISession) error {
+func (that *Proxy) Handle(sess rfb.ISession) error {
 	timeout := 10 * time.Second
 	if that.targetConfig.Timeout > 0 {
 		timeout = that.targetConfig.Timeout
@@ -213,7 +213,7 @@ func (that *VncProxy) Handle(sess rfb.ISession) error {
 	return nil
 }
 
-func (that *VncProxy) Close() {
+func (that *Proxy) Close() {
 	that.closed <- struct{}{}
 	close(that.proxySvr2VncCliMsgChan)
 	close(that.proxyCli2VncSvrMsgChan)
@@ -221,6 +221,6 @@ func (that *VncProxy) Close() {
 	close(that.vncSvr2ProxyMsgChan)
 }
 
-func (that *VncProxy) Error() <-chan error {
+func (that *Proxy) Error() <-chan error {
 	return that.errorCh
 }

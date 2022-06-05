@@ -5,14 +5,14 @@ import (
 	"github.com/gogf/gf/os/gfile"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
-	"github.com/vprix/vncproxy/screenshot"
+	"github.com/vprix/vncproxy/vnc"
 	"image/jpeg"
 	"time"
 )
 
 func main() {
 
-	v := screenshot.NewScreenshot(
+	v := vnc.NewScreenshot(
 		rfb.TargetConfig{
 			Network:  "tcp",
 			Host:     "127.0.0.1",

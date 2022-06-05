@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/gogf/gf/os/glog"
-	"github.com/vprix/vncproxy/player"
+	"github.com/vprix/vncproxy/vnc"
 	"net"
 )
 
 func main() {
 
-	paly := player.NewPlayer("D:\\code\\GolandProjects\\vprix-vnc\\abc.rbs", nil)
+	paly := vnc.NewPlayer("D:\\code\\GolandProjects\\vprix-vnc\\abc.rbs", nil)
 	var err error
 	addr := fmt.Sprintf("%s:%d", "0.0.0.0", 8989)
 	lis, err := net.Listen("tcp", addr)
