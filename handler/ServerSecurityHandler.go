@@ -24,8 +24,8 @@ func (*ServerSecurityHandler) Handle(session rfb.ISession) error {
 			return err
 		}
 
-		for _, sectype := range cfg.SecurityHandlers {
-			if err := binary.Write(session, binary.BigEndian, sectype.Type()); err != nil {
+		for _, sType := range cfg.SecurityHandlers {
+			if err := binary.Write(session, binary.BigEndian, sType.Type()); err != nil {
 				return err
 			}
 		}
