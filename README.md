@@ -35,13 +35,37 @@
 - [ ] jrle
 - [ ] trle
 
-## 使用方式
+## 组件说明
 
 ### Proxy
+
+1. 启动`server`接受`vnc viewer`的链接.
+2. 启动`client`连接到指定的`vnc server`.
+3. 为`vnc viewer`和`vnc server`之间建立起消息转发通道。
+4. 因为`rfb`协议被完全解析，可以针对通信的消息进行转发处理，产生了后续的功能。
+
 ### Recorder
+
+1. 启动`client`连接到指定的`vnc server`.
+2. 发送帧缓冲区更新消息`FramebufferUpdateRequest`到`vnc server`。
+3. 处理`vnc server`回复的界面更新消息`FramebufferUpdate`。
+4. 把这一过程以`rbs`文件格式记录下来。
+
 ### Player
+
+1. 启动`server`接受`vnc viewer`的链接.
+2. 读取`rbs`文件，并按格式生成`FramebufferUpdate`消息发送给`vnc viewer`。
+3. `vnc viewer`的界面就会回放动作。
+
 ### Video
+
+1. 支持`Proxy`,`Recorder`和`rbs`文件作为输入源。
+2. 把`FramebufferUpdate`消息转换为视频文件。
+
 ### Screenshot
+
+1. 支持`Proxy`,`Recorder`和`rbs`文件作为输入源。
+2. 把当前的界面视图转换为图片文件。
 
 ## 项目参考
 
