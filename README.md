@@ -72,9 +72,8 @@
 `vncProxy`项目有多种应用场景。
 可以作为单独的应用程序编译，也可以作为库被其他应用程序引用。
 接下来，分别介绍各种场景下的使用方式。
-### 独立应用
+### 编译
 
-编译
 ```shell
 # 使用方式:
 # build.sh [-s app_name] [-v version] [-g go_bin]
@@ -96,11 +95,11 @@ $ ./build -s player,recorder -v v0.1.0
 
 编译后的二进制文件在`./bin/`目录
 
-#### Proxy
+### Proxy
 
 代码路径在`./cmd/proxy`,如果单独编译该组件，也可以到该目录下自行执行`go build`命令编译
 
-##### 获取帮助信息
+#### 获取帮助信息
 ```shell
 # 查看帮助信息
 $ ./proxy --help
@@ -109,8 +108,8 @@ $ ./proxy --help
 $ ./proxy version
 
 ```
-##### 启动tcp服务
 
+#### 启动tcp服务
 ```shell
 
 # 启动tcp server接受vnc viewer的连接
@@ -130,8 +129,8 @@ $ ./proxy start tcpServer --vncHost=192.168.1.2 \
                           --proxyPassword=12345612 \  
                           --debug                    
 ```
-##### 启动WebSocket服务
 
+#### 启动WebSocket服务
 ```shell
 
 # 启动ws server接受novnc的连接
@@ -154,11 +153,10 @@ $ ./proxy start wsServer  --vncHost=192.168.1.2 \
                           --debug              
 ```
 
-#### Recorder
+### Recorder
 
 代码路径在`./cmd/recorder`,如果单独编译该组件，也可以到该目录下自行执行`go build`命令编译
-
-##### 获取帮助信息
+#### 获取帮助信息
 ```shell
 # 查看帮助信息
 $ ./recorder --help
@@ -167,8 +165,8 @@ $ ./recorder --help
 $ ./recorder version
 
 ```
-##### 启动Recorder服务
 
+#### 启动Recorder服务
 ```shell
 
 # rbsFile  要保存的rbs文件路径(必填)
@@ -184,12 +182,10 @@ $ ./recorder start --rbsFile=/path/to/foo.rbs
 							--debug             
 ```
 
-
-#### Player
+### Player
 
 代码路径在`./cmd/player`,如果单独编译该组件，也可以到该目录下自行执行`go build`命令编译
-
-##### 获取帮助信息
+#### 获取帮助信息
 ```shell
 # 查看帮助信息
 $ ./player --help
@@ -198,8 +194,7 @@ $ ./player --help
 $ ./player version
 ```
 
-##### 启动Player Tcp服务
-
+#### 启动Player Tcp服务
 ```shell
 
 # rbsFile  要保存的rbs文件路径(必填)
@@ -215,8 +210,7 @@ $ ./player start tcpServer  --rbsFile=/path/to/foo.rbs
                             --debug             
 ```
 
-##### 启动Player WS服务
-
+#### 启动Player WS服务
 ```shell
 
 # rbsFile  要保存的rbs文件路径(必填)
@@ -233,11 +227,9 @@ $ ./player start wsServer --rbsFile=/path/to/foo.rbs
                           --proxyPassword=12345612
                           --debug             
 ```
-#### Screenshot
-
+### Screenshot
 代码路径在`./cmd/screenshot`,如果单独编译该组件，也可以到该目录下自行执行`go build`命令编译
-
-##### 获取帮助信息
+#### 获取帮助信息
 ```shell
 # 查看帮助信息
 $ ./screenshot --help
@@ -246,8 +238,7 @@ $ ./screenshot --help
 $ ./screenshot version
 ```
 
-##### 启动Screenshot 获取vnc服务器的屏幕截图
-
+#### 启动Screenshot 获取vnc服务器的屏幕截图
 ```shell
 
 # imageFile  要生成的截图地址,暂时只支持jpeg格式(必填)
@@ -258,17 +249,21 @@ $ ./screenshot version
 $ ./screenshot --imageFile=./screen.jpeg --vncHost=127.0.0.1 --vncPort=5900 --vncPassword=12345612       
 ```
 
-
 ## 项目参考
 
+本项目参考了以下项目完成。
 * [vncproxy](https://github.com/amitbet/vncproxy)
 * [vnc2video](https://github.com/amitbet/vnc2video)
 * [rfbproto](https://github.com/rfbproto/rfbproto)
 
 ## 交流
 
-我在做该项目的过程中碰到了很多问题,。
-我建立了一个交流的微信群，大家在使用的过程中如果有疑问可以加我微信，我会给大家解答问题。
+我在做这个项目的过程中碰到了很多问题，查遍了互联网，缺少中文资料，大部分信息都是雷同的。
+所以我萌生了开源的想法，帮助更多有需要的人。
+
+我建立了一个可供交流的微信群，以便大家在使用的过程中碰到疑问，能有解答的地方。
+当然，如果你对vnc有兴趣，也可以加我微信，多多交流。
+欢迎各位贡献代码。
 
 ![微信二维码](/docs/images/5bb8dbe702ce04b0bdde8c26583b152.jpg)
 
