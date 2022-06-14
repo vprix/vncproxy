@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogf/gf/os/glog"
 	"github.com/gogf/gf/text/gstr"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/vnc"
 	"io"
+	"os"
 )
 
 var (
@@ -16,15 +16,15 @@ var (
 USAGE
 	./server [start|stop|quit] [tcpServer|wsServer] [OPTION]
 OPTION
+	--vncHost       要连接的vnc服务端地址  必传
+	--vncPort       要连接的vnc服务端端口 必传
+	--vncPassword   要连接的vnc服务端密码 不传则使用auth none
 	--tcpHost       本地监听的tcp协议地址 默认0.0.0.0
 	--tcpPort       本地监听的tcp协议端口 默认8989
 	--proxyPassword 连接到proxy的密码   不传入密码则使用auth none
 	--wsHost        启动websocket服务的本地地址  默认 0.0.0.0
 	--wsPort        启动websocket服务的本地端口 默认8988
 	--wsPath        启动websocket服务的url path 默认'/'
-	--vncHost       要连接的vnc服务端地址  必传
-	--vncPort       要连接的vnc服务端端口 必传
-	--vncPassword   要连接的vnc服务端密码 不传则使用auth none
 	--debug         是否开启debug 默认debug=false
 	-d,--daemon     使用守护进程模式启动
 	--pid           设置pid文件的地址，默认是/tmp/[server].pid
@@ -83,11 +83,13 @@ func main() {
 		cfg := svr.Config()
 		vncHost := svr.CmdParser().GetOptVar("vncHost", "")
 		if len(vncHost.String()) <= 0 {
-			glog.Fatal("必须要传入被代理的vnc服务端地址")
+			svr.Help()
+			os.Exit(0)
 		}
 		vncPort := svr.CmdParser().GetOptVar("vncPort", 0)
 		if vncPort.Int() <= 0 {
-			glog.Fatal("必须要传入被代理的vnc服务端端口")
+			svr.Help()
+			os.Exit(0)
 		}
 		_ = cfg.Set("vncHost", vncHost.String())
 		_ = cfg.Set("vncPort", vncPort.Int())

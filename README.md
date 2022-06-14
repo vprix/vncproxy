@@ -67,6 +67,17 @@
 1. 支持`Proxy`,`Recorder`和`rbs`文件作为输入源。
 2. 把当前的界面视图转换为图片文件。
 
+## 使用说明
+
+`vncProxy`项目有多种应用场景。
+可以作为单独的应用程序编译，也可以作为库被其他应用程序引用。
+接下来，分别介绍各种场景下的使用方式。
+
+### Proxy
+
+代码路径在`./cmd/proxy`.
+
+
 ## 项目参考
 
 * [vncproxy](https://github.com/amitbet/vncproxy)
