@@ -5,10 +5,14 @@
   * [版本更新记录](changelog.md)
 
 * 代理(Proxy)
+  - [使用方式](proxy/info.md)
 * 屏幕录像(Recorder)
+  - [使用方式](recorder/info.md)
 * 屏幕录像播放(Player)
-* 屏幕录像转视频(Video)
+  - [使用方式](player/info.md)
 * 截屏(Screenshot)
+  - [使用方式](screenshot/info.md)
+* 屏幕录像转视频(Video)
 
 * RFB协议详解
   - [远程帧缓冲协议](rfc6143/README.md)

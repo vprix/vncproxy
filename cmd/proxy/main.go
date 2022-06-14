@@ -14,7 +14,7 @@ import (
 var (
 	helpContent = gstr.TrimLeft(`
 USAGE
-	./server [start|stop|quit] [tcpServer|wsServer] [OPTION]
+	./proxy [start|stop|quit] [tcpServer|wsServer] [OPTION]
 OPTION
 	--vncHost       要连接的vnc服务端地址  必传
 	--vncPort       要连接的vnc服务端端口 必传
@@ -32,29 +32,30 @@ OPTION
 	-v,--version    获取编译版本信息
 	
 EXAMPLES
-	/path/to/server 
-	/path/to/server start --env=dev --debug=true --pid=/tmp/server.pid
-	/path/to/server start -c=config.product.toml
-	/path/to/server start tcpServer,wsServer --config=config.product.toml
-	/path/to/server start wsServer  --vncHost=192.168.1.2 
+	/path/to/proxy 
+	/path/to/proxy start --env=dev --debug=true --pid=/tmp/server.pid
+	/path/to/proxy start -c=config.product.toml
+	/path/to/proxy start tcpServer,wsServer --config=config.product.toml
+	/path/to/proxy start wsServer  --vncHost=192.168.1.2 
                                     --vncPort=5901
                                     --vncPassword=vprix
                                     --wsHost=0.0.0.0
                                     --wsPort=8988
+                                    --wsPath=/
                                     --proxyPassword=12345612
                                     --debug
-	/path/to/server start tcpServer --vncHost=192.168.1.2 
+	/path/to/proxy start tcpServer --vncHost=192.168.1.2 
                                     --vncPort=5901
                                     --vncPassword=vprix
                                     --tcpHost=0.0.0.0
                                     --tcpPort=8989
                                     --proxyPassword=12345612
                                     --debug
-	/path/to/server stop
-	/path/to/server quit
-	/path/to/server reload
-	/path/to/server version
-	/path/to/server help
+	/path/to/proxy stop
+	/path/to/proxy quit
+	/path/to/proxy reload
+	/path/to/proxy version
+	/path/to/proxy help
 `)
 )
 

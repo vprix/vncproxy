@@ -11,7 +11,7 @@ import (
 var (
 	helpContent = gstr.TrimLeft(`
 USAGE
-	./server [start|stop|quit] [OPTION]
+	./recorder [start|stop|quit]  [OPTION]
 OPTION
 	--rbsFile       使用的rbs文件地址  必传
     --vncHost       要连接的vnc服务端地址  必传
@@ -24,15 +24,15 @@ OPTION
 	-v,--version    获取编译版本信息
 	
 EXAMPLES
-	/path/to/server 
-	/path/to/server start --env=dev --debug=true --pid=/tmp/server.pid
-	/path/to/server start -c=config.product.toml
-	/path/to/server start  --config=config.product.toml
-	/path/to/server start recorder  --rbsFile=/path/to/foo.rbs
-                                    --vncHost=192.168.1.2 
-                                    --vncPort=5901
-                                    --vncPassword=vprix
-                                    --debug
+	/path/to/recorder 
+	/path/to/recorder start --env=dev --debug=true --pid=/tmp/server.pid
+	/path/to/recorder start -c=config.product.toml
+	/path/to/recorder start --config=config.product.toml
+	/path/to/recorder start --rbsFile=/path/to/foo.rbs
+							--vncHost=192.168.1.2 
+							--vncPort=5901
+							--vncPassword=vprix
+							--debug
 	/path/to/server stop
 	/path/to/server quit
 	/path/to/server reload
