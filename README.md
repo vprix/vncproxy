@@ -1,7 +1,7 @@
 # VncProxy [![GitHub release](https://img.shields.io/github/v/release/vprix/vncproxy.svg?style=flat-square)](https://github.com/vprix/vncproxy/releases) [![report card](https://goreportcard.com/badge/github.com/vprix/vncproxy?style=flat-square)](http://goreportcard.com/report/vprix/vncproxy) [![github issues](https://img.shields.io/github/issues/vprix/vncproxy.svg?style=flat-square)](https://github.com/vprix/vncproxy/issues?q=is%3Aopen+is%3Aissue) [![github closed issues](https://img.shields.io/github/issues-closed-raw/vprix/vncproxy.svg?style=flat-square)](https://github.com/vprix/vncproxy/issues?q=is%3Aissue+is%3Aclosed) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/vprix/vncproxy) [![view examples](https://img.shields.io/badge/learn%20by-examples-00BCD4.svg?style=flat-square)](https://github.com/vprix/vncproxy/tree/main/examples)
 ## VncProxy简介
 
-`VncProxy` 是使用`golang`实现的rfb协议解析库，支持rfb协议解析，在其上实现了很多好用的功能。
+`VncProxy` 是使用`Golang`实现的`Vnc`远程桌面代理组件，完全解析`rfb`协议，支持远程桌面代理，rbs文件录屏，rbs文件回放，截图，录制视频.
 
 * 全协议支持的vnc proxy。
   * 支持Tcp代理
