@@ -43,10 +43,10 @@ func (that *SetPixelFormat) Write(session rfb.ISession) error {
 		return err
 	}
 
-	pf := session.PixelFormat()
+	pf := session.Desktop().PixelFormat()
 	// Invalidate the color map.
 	if pf.TrueColor != 0 {
-		session.SetColorMap(rfb.ColorMap{})
+		session.Desktop().SetColorMap(rfb.ColorMap{})
 	}
 
 	return session.Flush()

@@ -9,6 +9,7 @@ import (
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/vnc"
+	"image/draw"
 	"image/jpeg"
 	"os"
 	"time"
@@ -95,8 +96,9 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+
 		j := &bytes.Buffer{}
-		err = jpeg.Encode(j, img, &jpeg.Options{Quality: 100})
+		err = jpeg.Encode(j, img.(draw.Image), &jpeg.Options{Quality: 100})
 		if err != nil {
 			fmt.Println(err)
 		}

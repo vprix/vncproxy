@@ -3,54 +3,58 @@ package session
 import (
 	"github.com/gogf/gf/container/gmap"
 	"github.com/vprix/vncproxy/canvas"
+	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
 )
 
 type CanvasSession struct {
-	cfg      *rfb.ClientConfig // 客户端配置信息
-	protocol string            //协议版本
-	colorMap rfb.ColorMap      // 颜色地图
-	Canvas   *canvas.VncCanvas
+	canvas *canvas.VncCanvas
 
-	desktopName     []byte               // 桌面名称
+	cfg             *rfb.ClientConfig    // 客户端配置信息
+	protocol        string               //协议版本
+	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	fbHeight    uint16          // 缓冲帧高度
-	fbWidth     uint16          // 缓冲帧宽度
-	pixelFormat rfb.PixelFormat // 像素格式
-
-	swap *gmap.Map
-
+	swap    *gmap.Map
 	quitCh  chan struct{} // 退出
-	quit    chan struct{}
 	errorCh chan error
 }
 
 // NewCanvasSession 创建客户端会话
 func NewCanvasSession(cfg *rfb.ClientConfig) *CanvasSession {
+	enc := cfg.Encodings
+	if len(cfg.Encodings) == 0 {
+		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+	}
+	desktop := &rfb.Desktop{}
+	desktop.SetPixelFormat(cfg.PixelFormat)
+	if cfg.QuitCh == nil {
+		cfg.QuitCh = make(chan struct{})
+	}
+	if cfg.ErrorCh == nil {
+		cfg.ErrorCh = make(chan error, 32)
+	}
 	return &CanvasSession{
-		cfg:         cfg,
-		encodings:   cfg.Encodings,
-		quitCh:      cfg.QuitCh,
-		errorCh:     cfg.ErrorCh,
-		pixelFormat: cfg.PixelFormat,
-		quit:        make(chan struct{}),
-		swap:        gmap.New(true),
+		cfg:       cfg,
+		desktop:   desktop,
+		encodings: enc,
+		quitCh:    cfg.QuitCh,
+		errorCh:   cfg.ErrorCh,
+		swap:      gmap.New(true),
 	}
 }
 
-func (that *CanvasSession) Connect() error {
-	that.Canvas = canvas.NewVncCanvas(int(that.Width()), int(that.Height()))
-	that.Canvas.DrawCursor = that.cfg.DrawCursor
-	return nil
+func (that *CanvasSession) Run() {
+	that.canvas = canvas.NewVncCanvas(int(that.desktop.Width()), int(that.desktop.Height()))
+	that.canvas.DrawCursor = that.cfg.DrawCursor
 }
 
 // Conn 获取会话底层的网络链接
 func (that *CanvasSession) Conn() io.ReadWriteCloser {
-	return that.Canvas
+	return that.canvas
 }
 
 // Config 获取配置信息
@@ -68,25 +72,9 @@ func (that *CanvasSession) SetProtocolVersion(pv string) {
 	that.protocol = pv
 }
 
-// PixelFormat 获取像素格式
-func (that *CanvasSession) PixelFormat() rfb.PixelFormat {
-	return that.pixelFormat
-}
-
-// SetPixelFormat 设置像素格式
-func (that *CanvasSession) SetPixelFormat(pf rfb.PixelFormat) error {
-	that.pixelFormat = pf
-	return nil
-}
-
-// ColorMap 获取颜色地图
-func (that *CanvasSession) ColorMap() rfb.ColorMap {
-	return that.colorMap
-}
-
-// SetColorMap 设置颜色地图
-func (that *CanvasSession) SetColorMap(cm rfb.ColorMap) {
-	that.colorMap = cm
+// Desktop 获取桌面对象
+func (that *CanvasSession) Desktop() *rfb.Desktop {
+	return that.desktop
 }
 
 // Encodings 获取当前支持的编码格式
@@ -107,43 +95,13 @@ func (that *CanvasSession) SetEncodings(encs []rfb.EncodingType) error {
 	return msg.Write(that)
 }
 
-// Width 获取桌面宽度
-func (that *CanvasSession) Width() uint16 {
-	return that.fbWidth
-}
-
-// SetWidth 设置桌面宽度
-func (that *CanvasSession) SetWidth(width uint16) {
-	that.fbWidth = width
-}
-
-// Height 获取桌面高度
-func (that *CanvasSession) Height() uint16 {
-	return that.fbHeight
-}
-
-// SetHeight 设置桌面高度
-func (that *CanvasSession) SetHeight(height uint16) {
-	that.fbHeight = height
-}
-
-// DesktopName 获取该会话的桌面名称
-func (that *CanvasSession) DesktopName() []byte {
-	return that.desktopName
-}
-
-// SetDesktopName 设置桌面名称
-func (that *CanvasSession) SetDesktopName(name []byte) {
-	that.desktopName = name
-}
-
 func (that *CanvasSession) Flush() error {
 	return nil
 }
 
 // Wait 等待会话处理完成
 func (that *CanvasSession) Wait() {
-	<-that.quit
+	<-that.quitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -169,28 +127,29 @@ func (that *CanvasSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
 
 // Read 从链接中读取数据
 func (that *CanvasSession) Read(buf []byte) (int, error) {
-	return that.Canvas.Read(buf)
+	return that.canvas.Read(buf)
 }
 
 // Write 写入数据到链接
 func (that *CanvasSession) Write(buf []byte) (int, error) {
-	return that.Canvas.Write(buf)
+	return that.canvas.Write(buf)
 }
 
 // Close 关闭会话
 func (that *CanvasSession) Close() error {
-	if that.quit != nil {
-		close(that.quit)
-		that.quit = nil
-	}
 	if that.quitCh != nil {
 		close(that.quitCh)
+		that.quitCh = nil
 	}
-	return that.Canvas.Close()
+	return that.canvas.Close()
 }
+
+// Swap session存储的临时变量
 func (that *CanvasSession) Swap() *gmap.Map {
 	return that.swap
 }
+
+// Type session类型
 func (that *CanvasSession) Type() rfb.SessionType {
 	return rfb.CanvasSessionType
 }

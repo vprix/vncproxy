@@ -90,7 +90,7 @@ func (that *CursorPseudoEncoding) Read(session rfb.ISession, rect *rfb.Rectangle
 	var bt []byte
 	var err error
 
-	bytesPixel := int(session.PixelFormat().BPP / 8) //calcTightBytePerPixel(pf)
+	bytesPixel := int(session.Desktop().PixelFormat().BPP / 8) //calcTightBytePerPixel(pf)
 	bt, err = ReadBytes(int(rect.Width*rect.Height)*bytesPixel, session)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (that *CursorPseudoEncoding) Write(sess rfb.ISession, rect *rfb.Rectangle) 
 		return nil
 	}
 	if sess.Type() == rfb.CanvasSessionType {
-		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.PixelFormat(), rect)
+		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.Desktop().PixelFormat(), rect)
 	}
 	var err error
 	_, err = that.buff.WriteTo(sess)

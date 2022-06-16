@@ -41,7 +41,7 @@ func (that *RawEncoding) Write(sess rfb.ISession, rect *rfb.Rectangle) error {
 		if !ok {
 			return errors.New("canvas error")
 		}
-		pf := sess.PixelFormat()
+		pf := sess.Desktop().PixelFormat()
 		return cv.DecodeRaw(that.buff, &pf, rect)
 	}
 	var err error
@@ -55,7 +55,7 @@ func (that *RawEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error {
 	if that.buff == nil {
 		that.buff = &bytes.Buffer{}
 	}
-	pf := session.PixelFormat()
+	pf := session.Desktop().PixelFormat()
 	// 表示单个像素是使用多少字节表示，分别为 8，16，32，对应的是1，2，4字节
 	// 知道表示像素的字节长度，则根据宽高就能算出此次传输的总长度
 	size := int(rect.Height) * int(rect.Width) * int(pf.BPP/8)

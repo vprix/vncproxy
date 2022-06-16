@@ -13,5 +13,6 @@ type ServerConfig struct {
 	DesktopName        []byte
 	Height             uint16
 	Width              uint16
+	QuitCh             chan struct{} // 退出
 	ErrorCh            chan error
 }

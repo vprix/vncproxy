@@ -3,7 +3,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/vprix/vncproxy/pkg/dbuffer"
+	"github.com/vprix/vncproxy/internal/dbuffer"
 	"github.com/vprix/vncproxy/rfb"
 )
 

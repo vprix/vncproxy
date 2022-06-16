@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/gogf/gf/container/gmap"
-	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/logger"
+	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
@@ -23,27 +23,20 @@ var (
 	}
 )
 
+// ClientSession proxy 客户端
 type ClientSession struct {
 	c  net.Conn // 网络链接
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg      *rfb.ClientConfig // 客户端配置信息
-	protocol string            //协议版本
-	colorMap rfb.ColorMap      // 颜色地图
-
-	desktopName     []byte               // 桌面名称
+	cfg             *rfb.ClientConfig    // 客户端配置信息
+	protocol        string               //协议版本
+	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	fbHeight    uint16          // 缓冲帧高度
-	fbWidth     uint16          // 缓冲帧宽度
-	pixelFormat rfb.PixelFormat // 像素格式
-
-	swap *gmap.Map
-
+	swap    *gmap.Map
 	quitCh  chan struct{} // 退出
-	quit    chan struct{}
 	errorCh chan error
 }
 
@@ -51,36 +44,46 @@ var _ rfb.ISession = new(ClientSession)
 
 // NewClient 创建客户端会话
 func NewClient(c net.Conn, cfg *rfb.ClientConfig) (*ClientSession, error) {
+	enc := cfg.Encodings
 	if len(cfg.Encodings) == 0 {
-		return nil, fmt.Errorf("必须要配置客户端支持的编码格式")
+		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+	}
+	desktop := &rfb.Desktop{}
+	desktop.SetPixelFormat(cfg.PixelFormat)
+
+	if cfg.QuitCh == nil {
+		cfg.QuitCh = make(chan struct{})
+	}
+	if cfg.ErrorCh == nil {
+		cfg.ErrorCh = make(chan error, 32)
 	}
 	return &ClientSession{
-		c:           c,
-		cfg:         cfg,
-		br:          bufio.NewReader(c),
-		bw:          bufio.NewWriter(c),
-		encodings:   cfg.Encodings,
-		quitCh:      cfg.QuitCh,
-		errorCh:     cfg.ErrorCh,
-		pixelFormat: cfg.PixelFormat,
-		quit:        make(chan struct{}),
-		swap:        gmap.New(true),
+		c:         c,
+		br:        bufio.NewReader(c),
+		bw:        bufio.NewWriter(c),
+		cfg:       cfg,
+		desktop:   desktop,
+		encodings: enc,
+		quitCh:    cfg.QuitCh,
+		errorCh:   cfg.ErrorCh,
+		swap:      gmap.New(true),
 	}, nil
 }
 
-func (that *ClientSession) Connect() error {
+func (that *ClientSession) Run() {
 	if len(that.cfg.Handlers) == 0 {
 		that.cfg.Handlers = DefaultClientHandlers
 	}
 	for _, h := range that.cfg.Handlers {
 		if err := h.Handle(that); err != nil {
-			glog.Error("握手失败，请检查服务是否启动: ", err)
-			_ = that.Close()
-			that.cfg.ErrorCh <- err
-			return err
+			that.cfg.ErrorCh <- fmt.Errorf("握手失败，请检查服务是否启动: %v", err)
+			err = that.Close()
+			if err != nil {
+				that.cfg.ErrorCh <- fmt.Errorf("关闭client失败: %v", err)
+			}
+			return
 		}
 	}
-	return nil
 }
 
 // Conn 获取会话底层的网络链接
@@ -103,25 +106,9 @@ func (that *ClientSession) SetProtocolVersion(pv string) {
 	that.protocol = pv
 }
 
-// PixelFormat 获取像素格式
-func (that *ClientSession) PixelFormat() rfb.PixelFormat {
-	return that.pixelFormat
-}
-
-// SetPixelFormat 设置像素格式
-func (that *ClientSession) SetPixelFormat(pf rfb.PixelFormat) error {
-	that.pixelFormat = pf
-	return nil
-}
-
-// ColorMap 获取颜色地图
-func (that *ClientSession) ColorMap() rfb.ColorMap {
-	return that.colorMap
-}
-
-// SetColorMap 设置颜色地图
-func (that *ClientSession) SetColorMap(cm rfb.ColorMap) {
-	that.colorMap = cm
+// Desktop 获取桌面对象
+func (that *ClientSession) Desktop() *rfb.Desktop {
+	return that.desktop
 }
 
 // Encodings 获取当前支持的编码格式
@@ -142,43 +129,13 @@ func (that *ClientSession) SetEncodings(encs []rfb.EncodingType) error {
 	return msg.Write(that)
 }
 
-// Width 获取桌面宽度
-func (that *ClientSession) Width() uint16 {
-	return that.fbWidth
-}
-
-// SetWidth 设置桌面宽度
-func (that *ClientSession) SetWidth(width uint16) {
-	that.fbWidth = width
-}
-
-// Height 获取桌面高度
-func (that *ClientSession) Height() uint16 {
-	return that.fbHeight
-}
-
-// SetHeight 设置桌面高度
-func (that *ClientSession) SetHeight(height uint16) {
-	that.fbHeight = height
-}
-
-// DesktopName 获取该会话的桌面名称
-func (that *ClientSession) DesktopName() []byte {
-	return that.desktopName
-}
-
-// SetDesktopName 设置桌面名称
-func (that *ClientSession) SetDesktopName(name []byte) {
-	that.desktopName = name
-}
-
 func (that *ClientSession) Flush() error {
 	return that.bw.Flush()
 }
 
 // Wait 等待会话处理完成
 func (that *ClientSession) Wait() {
-	<-that.quit
+	<-that.quitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -192,7 +149,7 @@ func (that *ClientSession) SetSecurityHandler(securityHandler rfb.ISecurityHandl
 	return nil
 }
 
-// GetEncoding 通过编码类型判断是否支持编码对象
+// GetEncoding 获取编码对象
 func (that *ClientSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
 	for _, enc := range that.encodings {
 		if enc.Type() == typ && enc.Supported(that) {
@@ -201,13 +158,6 @@ func (that *ClientSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
 	}
 	return nil
 }
-
-// ResetAllEncodings 所有编码对象重置
-//func (that *ClientSession) ResetAllEncodings() {
-//	for _, enc := range that.encodings {
-//		_ = enc.Reset()
-//	}
-//}
 
 // Read 从链接中读取数据
 func (that *ClientSession) Read(buf []byte) (int, error) {
@@ -221,18 +171,18 @@ func (that *ClientSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *ClientSession) Close() error {
-	if that.quit != nil {
-		close(that.quit)
-		that.quit = nil
-	}
 	if that.quitCh != nil {
 		close(that.quitCh)
 	}
 	return that.c.Close()
 }
+
+// Swap session存储的临时变量
 func (that *ClientSession) Swap() *gmap.Map {
 	return that.swap
 }
+
+// Type session类型
 func (that *ClientSession) Type() rfb.SessionType {
 	return rfb.ClientSessionType
 }

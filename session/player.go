@@ -6,53 +6,62 @@ import (
 	"fmt"
 	"github.com/gogf/gf/container/gmap"
 	"github.com/gogf/gf/os/gfile"
+	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
 	"os"
 )
 
 type PlayerSession struct {
-	RFBFile string
+	rbsFile string
 	c       io.ReadWriteCloser
 	br      *bufio.Reader
 	bw      *bufio.Writer
 
-	cfg      *rfb.ServerConfig // 客户端配置信息
-	protocol string            //协议版本
-	colorMap rfb.ColorMap      // 颜色地图
-
-	desktopName []byte          // 桌面名称
-	encodings   []rfb.IEncoding // 支持的编码列
-
-	fbHeight    uint16          // 缓冲帧高度
-	fbWidth     uint16          // 缓冲帧宽度
-	pixelFormat rfb.PixelFormat // 像素格式
+	cfg             *rfb.ServerConfig    // 配置信息
+	protocol        string               //协议版本
+	desktop         *rfb.Desktop         // 桌面对象
+	encodings       []rfb.IEncoding      // 支持的编码列
+	securityHandler rfb.ISecurityHandler // 安全认证方式
 
 	swap    *gmap.Map
-	quit    chan struct{}
+	quitCh  chan struct{}
 	errorCh chan error
 }
 
-func NewPlayerSession(saveFilePath string, cfg *rfb.ServerConfig) *PlayerSession {
+func NewPlayerSession(rbsFile string, cfg *rfb.ServerConfig) *PlayerSession {
+	enc := cfg.Encodings
+	if len(cfg.Encodings) == 0 {
+		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+	}
+	desktop := &rfb.Desktop{}
+	if cfg.QuitCh == nil {
+		cfg.QuitCh = make(chan struct{})
+	}
+	if cfg.ErrorCh == nil {
+		cfg.ErrorCh = make(chan error, 32)
+	}
 	return &PlayerSession{
-		RFBFile:   saveFilePath,
+		rbsFile:   rbsFile,
 		cfg:       cfg,
-		encodings: cfg.Encodings,
+		desktop:   desktop,
+		encodings: enc,
 		errorCh:   cfg.ErrorCh,
-		quit:      make(chan struct{}),
+		quitCh:    cfg.QuitCh,
 		swap:      gmap.New(true),
 	}
 }
 
-func (that *PlayerSession) Connect() error {
-	if !gfile.Exists(that.RFBFile) {
-		//_ = gfile.Remove(that.RFBFile)
-		return fmt.Errorf("要保存的文件[%s]不存在", that.RFBFile)
+func (that *PlayerSession) Run() {
+	if !gfile.Exists(that.rbsFile) {
+		that.errorCh <- fmt.Errorf("要保存的文件[%s]不存在", that.rbsFile)
+		return
 	}
 	var err error
-	that.c, err = gfile.OpenFile(that.RFBFile, os.O_RDONLY, 0644)
+	that.c, err = gfile.OpenFile(that.rbsFile, os.O_RDONLY, 0644)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
 
 	that.br = bufio.NewReader(that.c)
@@ -60,48 +69,60 @@ func (that *PlayerSession) Connect() error {
 	version := make([]byte, len(RBSVersion))
 	_, err = that.br.Read(version)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
 	// 读取rfb协议
 	version = make([]byte, len(rfb.ProtoVersion38))
 	_, err = that.br.Read(version)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
 	that.protocol = string(version)
 	var secTypeNone int32
 	err = binary.Read(that.br, binary.BigEndian, &secTypeNone)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	err = binary.Read(that.br, binary.BigEndian, &that.fbWidth)
+	var fbWeight uint16
+	err = binary.Read(that.br, binary.BigEndian, &fbWeight)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	err = binary.Read(that.br, binary.BigEndian, &that.fbHeight)
+	that.desktop.SetWidth(fbWeight)
+
+	var fbHeight uint16
+	err = binary.Read(that.br, binary.BigEndian, &fbHeight)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	err = binary.Read(that.br, binary.BigEndian, &that.pixelFormat)
+	that.desktop.SetHeight(fbWeight)
+
+	var pixelFormat rfb.PixelFormat
+	err = binary.Read(that.br, binary.BigEndian, &pixelFormat)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	//var pad [3]byte
-	//err = binary.Read(that.br, binary.BigEndian, &pad)
-	//if err != nil {
-	//	return err
-	//}
+	that.desktop.SetPixelFormat(pixelFormat)
 	var desktopNameSize uint32
 	err = binary.Read(that.br, binary.BigEndian, &desktopNameSize)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	that.desktopName = make([]byte, desktopNameSize)
-	_, err = that.Read(that.desktopName)
+	desktopName := make([]byte, desktopNameSize)
+	_, err = that.Read(desktopName)
 	if err != nil {
-		return err
+		that.errorCh <- err
+		return
 	}
-	return nil
+	that.desktop.SetDesktopName(desktopName)
+	return
 }
 
 // Conn 获取会话底层的网络链接
@@ -114,6 +135,11 @@ func (that *PlayerSession) Config() interface{} {
 	return that.cfg
 }
 
+// Desktop 获取桌面对象
+func (that *PlayerSession) Desktop() *rfb.Desktop {
+	return that.desktop
+}
+
 // ProtocolVersion 获取会话使用的协议版本
 func (that *PlayerSession) ProtocolVersion() string {
 	return that.protocol
@@ -122,25 +148,6 @@ func (that *PlayerSession) ProtocolVersion() string {
 // SetProtocolVersion 设置支持的协议版本
 func (that *PlayerSession) SetProtocolVersion(pv string) {
 	that.protocol = pv
-}
-
-// PixelFormat 获取像素格式
-func (that *PlayerSession) PixelFormat() rfb.PixelFormat {
-	return that.pixelFormat
-}
-
-// SetPixelFormat 设置像素格式
-func (that *PlayerSession) SetPixelFormat(pf rfb.PixelFormat) error {
-	return nil
-}
-
-// ColorMap 获取颜色地图
-func (that *PlayerSession) ColorMap() rfb.ColorMap {
-	return that.colorMap
-}
-
-// SetColorMap 设置颜色地图
-func (that *PlayerSession) SetColorMap(cm rfb.ColorMap) {
 }
 
 // Encodings 获取当前支持的编码格式
@@ -153,42 +160,13 @@ func (that *PlayerSession) SetEncodings(encs []rfb.EncodingType) error {
 	return nil
 }
 
-// Width 获取桌面宽度
-func (that *PlayerSession) Width() uint16 {
-	return that.fbWidth
-}
-
-// SetWidth 设置桌面宽度
-func (that *PlayerSession) SetWidth(width uint16) {
-	that.fbWidth = width
-}
-
-// Height 获取桌面高度
-func (that *PlayerSession) Height() uint16 {
-	return that.fbHeight
-}
-
-// SetHeight 设置桌面高度
-func (that *PlayerSession) SetHeight(height uint16) {
-}
-
-// DesktopName 获取该会话的桌面名称
-func (that *PlayerSession) DesktopName() []byte {
-	return that.desktopName
-}
-
-// SetDesktopName 设置桌面名称
-func (that *PlayerSession) SetDesktopName(name []byte) {
-}
-
 func (that *PlayerSession) Flush() error {
-
 	return that.bw.Flush()
 }
 
 // Wait 等待会话处理完成
 func (that *PlayerSession) Wait() {
-	<-that.quit
+	<-that.quitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -223,9 +201,9 @@ func (that *PlayerSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *PlayerSession) Close() error {
-	if that.quit != nil {
-		close(that.quit)
-		that.quit = nil
+	if that.quitCh != nil {
+		close(that.quitCh)
+		that.quitCh = nil
 	}
 	return that.c.Close()
 }

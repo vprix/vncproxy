@@ -3,7 +3,7 @@ package encodings
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/vprix/vncproxy/pkg/dbuffer"
+	"github.com/vprix/vncproxy/internal/dbuffer"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
 )

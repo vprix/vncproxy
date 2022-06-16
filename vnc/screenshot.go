@@ -6,7 +6,7 @@ import (
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
-	"image/draw"
+	"io"
 	"net"
 	"time"
 )
@@ -44,7 +44,7 @@ func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
 	return recorder
 }
 
-func (that *Screenshot) Start() (draw.Image, error) {
+func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 
 	timeout := 10 * time.Second
 	if that.targetCfg.Timeout > 0 {
@@ -63,14 +63,13 @@ func (that *Screenshot) Start() (draw.Image, error) {
 		return nil, err
 	}
 
-	err = that.cliSession.Connect()
-	if err != nil {
-		return nil, err
-	}
+	that.cliSession.Run()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,
 		rfb.EncPointerPosPseudo,
 		rfb.EncHexTile,
+		rfb.EncTight,
+		rfb.EncZRLE,
 	}
 	defer func() {
 		_ = that.cliSession.Close()
@@ -81,18 +80,15 @@ func (that *Screenshot) Start() (draw.Image, error) {
 	}
 	// 设置参数信息
 	that.canvasSession.SetProtocolVersion(that.cliSession.ProtocolVersion())
-	that.canvasSession.SetWidth(that.cliSession.Width())
-	that.canvasSession.SetHeight(that.cliSession.Height())
-	_ = that.canvasSession.SetPixelFormat(that.cliSession.PixelFormat())
-	that.canvasSession.SetDesktopName(that.cliSession.DesktopName())
-	err = that.canvasSession.Connect()
-	if err != nil {
-		return nil, err
-	}
+	that.canvasSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
+	that.canvasSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
+	that.canvasSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
+	that.canvasSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
+	that.canvasSession.Run()
 	defer func() {
 		_ = that.canvasSession.Close()
 	}()
-	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Width(), Height: that.cliSession.Height()}
+	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
 	err = reqMsg.Write(that.cliSession)
 	if err != nil {
 		return nil, err
@@ -106,7 +102,7 @@ func (that *Screenshot) Start() (draw.Image, error) {
 					return nil, err
 				}
 				err = that.canvasSession.Flush()
-				return that.canvasSession.Canvas, err
+				return that.canvasSession.Conn(), err
 			}
 		}
 	}

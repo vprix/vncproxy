@@ -69,7 +69,7 @@ func (that *TightEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error
 	if that.buff == nil {
 		that.buff = &bytes.Buffer{}
 	}
-	pf := session.PixelFormat()
+	pf := session.Desktop().PixelFormat()
 	bytesPixel := calcTightBytePerPixel(&pf)
 	compressionControl, err := ReadUint8(session)
 	if err != nil {

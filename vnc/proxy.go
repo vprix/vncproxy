@@ -14,11 +14,11 @@ import (
 )
 
 type Proxy struct {
-	rfbSvrCfg              *rfb.ServerConfig      // proxy服务端监听vnc客户端的配置信息
-	rfbCliCfg              *rfb.ClientConfig      // proxy客户端连接vnc服务端的配置信息
-	targetConfig           rfb.TargetConfig       // vnc服务端的链接参数
-	svrSession             *session.ServerSession // vnc客户端连接到proxy的会话
-	cliSession             *session.ClientSession // 链接到vnc服务端的会话
+	rfbSvrCfg              *rfb.ServerConfig // proxy服务端监听vnc客户端的配置信息
+	rfbCliCfg              *rfb.ClientConfig // proxy客户端连接vnc服务端的配置信息
+	targetConfig           rfb.TargetConfig  // vnc服务端的链接参数
+	svrSession             rfb.ISession      // vnc客户端连接到proxy的会话
+	cliSession             rfb.ISession      // 链接到vnc服务端的会话
 	closed                 chan struct{}
 	errorCh                chan error             // 错误通道
 	proxyCli2VncSvrMsgChan chan rfb.ClientMessage // proxy客户端发送给vnc服务端的消息通道
@@ -86,10 +86,7 @@ func (that *Proxy) Start(conn io.ReadWriteCloser) {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	err := session.NewServerSession(conn, that.rfbSvrCfg).Server()
-	if err != nil {
-		that.errorCh <- err
-	}
+	session.NewServerSession(conn, that.rfbSvrCfg).Run()
 	return
 }
 
@@ -125,7 +122,7 @@ func (that *Proxy) handleIO() {
 			case rfb.SetPixelFormat:
 				// 发现是设置像素格式的消息，则忽略
 				//that.rfbCliCfg.PixelFormat = msg.(*messages.SetPixelFormat).PF
-				_ = that.cliSession.SetPixelFormat(msg.(*messages.SetPixelFormat).PF)
+				that.cliSession.Desktop().SetPixelFormat(msg.(*messages.SetPixelFormat).PF)
 				that.proxyCli2VncSvrMsgChan <- msg
 				continue
 			case rfb.SetEncodings:
@@ -177,39 +174,17 @@ func (that *Proxy) Handle(sess rfb.ISession) error {
 	if err != nil {
 		return err
 	}
-	err = that.cliSession.Connect()
+	that.cliSession.Run()
 	if err != nil {
 		return err
 	}
 	that.svrSession = sess.(*session.ServerSession)
-	that.svrSession.SetWidth(that.cliSession.Width())
-	that.svrSession.SetHeight(that.cliSession.Height())
-	that.svrSession.SetDesktopName(that.cliSession.DesktopName())
-	_ = that.svrSession.SetPixelFormat(that.cliSession.PixelFormat())
+	that.svrSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
+	that.svrSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
+	that.svrSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
+	that.svrSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
 
 	go that.handleIO()
-	//go func() {
-	//
-	//	ticker := time.Tick(2 * time.Second)
-	//	for true {
-	//		select {
-	//		case <-ticker:
-	//			buff := &bytes.Buffer{}
-	//			err = jpeg.Encode(buff, that.cliSession.Canvas, &jpeg.Options{Quality: 100})
-	//			if err != nil {
-	//				glog.Error(err)
-	//				return
-	//			}
-	//			filename := fmt.Sprintf("D:\\code\\GolandProjects\\vprix-vnc\\abc_%d.jpeg", grand.Intn(10000))
-	//			err = gfile.PutBytes(filename, buff.Bytes())
-	//			if err != nil {
-	//				glog.Error(err)
-	//				return
-	//			}
-	//		}
-	//	}
-	//
-	//}()
 	return nil
 }
 

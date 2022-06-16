@@ -14,5 +14,4 @@ type ClientConfig struct {
 	Messages           []ServerMessage     // 支持的服务端消息列表
 	QuitCh             chan struct{}       // 退出
 	ErrorCh            chan error          // 错误通道
-	quit               chan struct{}
 }

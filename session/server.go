@@ -3,6 +3,7 @@ package session
 import (
 	"bufio"
 	"github.com/gogf/gf/container/gmap"
+	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
@@ -23,51 +24,61 @@ type ServerSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg             *rfb.ServerConfig    //配置信息
+	cfg             *rfb.ServerConfig    // 配置信息
 	protocol        string               //协议版本
-	colorMap        rfb.ColorMap         // 颜色地图
+	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	swap *gmap.Map
-
-	desktopName []byte          // 桌面名称
-	fbHeight    uint16          // 缓冲帧高度
-	fbWidth     uint16          // 缓冲帧宽度
-	pixelFormat rfb.PixelFormat // 像素格式
-	quit        chan struct{}
+	swap    *gmap.Map
+	quitCh  chan struct{} // 退出
+	errorCh chan error
 }
 
 var _ rfb.ISession = new(ServerSession)
 
 func NewServerSession(c io.ReadWriteCloser, cfg *rfb.ServerConfig) *ServerSession {
+	enc := cfg.Encodings
+	if len(cfg.Encodings) == 0 {
+		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+	}
+	desktop := &rfb.Desktop{}
+	desktop.SetPixelFormat(cfg.PixelFormat)
+
+	if cfg.QuitCh == nil {
+		cfg.QuitCh = make(chan struct{})
+	}
+	if cfg.ErrorCh == nil {
+		cfg.ErrorCh = make(chan error, 32)
+	}
 	return &ServerSession{
-		c:           c,
-		br:          bufio.NewReader(c),
-		bw:          bufio.NewWriter(c),
-		cfg:         cfg,
-		desktopName: cfg.DesktopName,
-		encodings:   cfg.Encodings,
-		pixelFormat: cfg.PixelFormat,
-		fbWidth:     cfg.Width,
-		fbHeight:    cfg.Height,
-		quit:        make(chan struct{}),
+		c:         c,
+		br:        bufio.NewReader(c),
+		bw:        bufio.NewWriter(c),
+		cfg:       cfg,
+		desktop:   desktop,
+		encodings: enc,
+		quitCh:    cfg.QuitCh,
+		errorCh:   cfg.ErrorCh,
+		swap:      gmap.New(true),
 	}
 }
 
-func (that *ServerSession) Server() error {
+func (that *ServerSession) Run() {
 	if len(that.cfg.Handlers) == 0 {
 		that.cfg.Handlers = DefaultServerHandlers
 	}
 	for _, h := range that.cfg.Handlers {
 		if err := h.Handle(that); err != nil {
-			if that.cfg.ErrorCh != nil {
-				that.cfg.ErrorCh <- err
+			that.errorCh <- err
+			err = that.Close()
+			if err != nil {
+				that.errorCh <- err
 			}
-			return that.Close()
+			return
 		}
 	}
-	return nil
+	return
 }
 func (that *ServerSession) Conn() io.ReadWriteCloser {
 	return that.c
@@ -86,25 +97,9 @@ func (that *ServerSession) SetProtocolVersion(pv string) {
 	that.protocol = pv
 }
 
-// PixelFormat 获取像素格式
-func (that *ServerSession) PixelFormat() rfb.PixelFormat {
-	return that.pixelFormat
-}
-
-// SetPixelFormat 设置像素格式
-func (that *ServerSession) SetPixelFormat(pf rfb.PixelFormat) error {
-	that.pixelFormat = pf
-	return nil
-}
-
-// ColorMap 获取颜色地图
-func (that *ServerSession) ColorMap() rfb.ColorMap {
-	return that.colorMap
-}
-
-// SetColorMap 设置颜色地图
-func (that *ServerSession) SetColorMap(cm rfb.ColorMap) {
-	that.colorMap = cm
+// Desktop 获取桌面对象
+func (that *ServerSession) Desktop() *rfb.Desktop {
+	return that.desktop
 }
 
 // Encodings 获取当前支持的编码格式
@@ -126,43 +121,13 @@ func (that *ServerSession) SetEncodings(encs []rfb.EncodingType) error {
 	return nil
 }
 
-// Width 获取桌面宽度
-func (that *ServerSession) Width() uint16 {
-	return that.fbWidth
-}
-
-// SetWidth 设置桌面宽度
-func (that *ServerSession) SetWidth(width uint16) {
-	that.fbWidth = width
-}
-
-// Height 获取桌面高度
-func (that *ServerSession) Height() uint16 {
-	return that.fbHeight
-}
-
-// SetHeight 设置桌面高度
-func (that *ServerSession) SetHeight(height uint16) {
-	that.fbHeight = height
-}
-
-// DesktopName 获取该会话的桌面名称
-func (that *ServerSession) DesktopName() []byte {
-	return that.desktopName
-}
-
-// SetDesktopName 设置桌面名称
-func (that *ServerSession) SetDesktopName(name []byte) {
-	that.desktopName = name
-}
-
 func (that *ServerSession) Flush() error {
 	return that.bw.Flush()
 }
 
 // Wait 等待会话处理完成
 func (that *ServerSession) Wait() {
-	<-that.quit
+	<-that.quitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -198,15 +163,19 @@ func (that *ServerSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *ServerSession) Close() error {
-	if that.quit != nil {
-		close(that.quit)
-		that.quit = nil
+	if that.quitCh != nil {
+		close(that.quitCh)
+		that.quitCh = nil
 	}
 	return that.c.Close()
 }
+
+// Swap session存储的临时变量
 func (that *ServerSession) Swap() *gmap.Map {
 	return that.swap
 }
+
+// Type session类型
 func (that *ServerSession) Type() rfb.SessionType {
 	return rfb.ServerSessionType
 }

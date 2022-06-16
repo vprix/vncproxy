@@ -74,19 +74,16 @@ func (that *Video) Start() error {
 		return err
 	}
 
-	err = that.cliSession.Connect()
-	if err != nil {
-		return err
-	}
+	that.cliSession.Run()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,
 		rfb.EncPointerPosPseudo,
-		//rfb.EncCopyRect,
-		//rfb.EncTight,
-		//rfb.EncZRLE,
+		rfb.EncCopyRect,
+		rfb.EncTight,
+		rfb.EncZRLE,
 		rfb.EncHexTile,
-		//rfb.EncZlib,
-		//rfb.EncRRE,
+		rfb.EncZlib,
+		rfb.EncRRE,
 	}
 	err = that.cliSession.SetEncodings(encS)
 	if err != nil {
@@ -94,15 +91,12 @@ func (that *Video) Start() error {
 	}
 	// 设置参数信息
 	that.canvasSession.SetProtocolVersion(that.cliSession.ProtocolVersion())
-	that.canvasSession.SetWidth(that.cliSession.Width())
-	that.canvasSession.SetHeight(that.cliSession.Height())
-	_ = that.canvasSession.SetPixelFormat(that.cliSession.PixelFormat())
-	that.canvasSession.SetDesktopName(that.cliSession.DesktopName())
-	err = that.canvasSession.Connect()
-	if err != nil {
-		return err
-	}
-	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Width(), Height: that.cliSession.Height()}
+	that.canvasSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
+	that.canvasSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
+	that.canvasSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
+	that.canvasSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
+	that.canvasSession.Run()
+	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
 	err = reqMsg.Write(that.cliSession)
 	if err != nil {
 		return err
@@ -121,7 +115,7 @@ func (that *Video) Start() error {
 				if err != nil {
 					return err
 				}
-				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Width(), Height: that.cliSession.Height()}
+				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
 				err = reqMsg.Write(that.cliSession)
 				if err != nil {
 					return err

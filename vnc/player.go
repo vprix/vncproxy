@@ -57,27 +57,19 @@ func (that *Player) Start(conn io.ReadWriteCloser) error {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	go func() {
-		err := session.NewServerSession(conn, that.rfbSvrCfg).Server()
-		if err != nil {
-			that.rfbSvrCfg.ErrorCh <- err
-		}
-	}()
+	go session.NewServerSession(conn, that.rfbSvrCfg).Run()
 
 	return nil
 }
 
 // Handle 建立远程链接
 func (that *Player) Handle(sess rfb.ISession) error {
-	err := that.playerSession.Connect()
-	if err != nil {
-		return err
-	}
+	that.playerSession.Run()
 	that.svrSession = sess.(*session.ServerSession)
-	that.svrSession.SetWidth(that.playerSession.Width())
-	that.svrSession.SetHeight(that.playerSession.Height())
-	that.svrSession.SetDesktopName(that.playerSession.DesktopName())
-	_ = that.svrSession.SetPixelFormat(that.playerSession.PixelFormat())
+	that.svrSession.Desktop().SetWidth(that.playerSession.Desktop().Width())
+	that.svrSession.Desktop().SetHeight(that.playerSession.Desktop().Height())
+	that.svrSession.Desktop().SetDesktopName(that.playerSession.Desktop().DesktopName())
+	that.svrSession.Desktop().SetPixelFormat(that.playerSession.Desktop().PixelFormat())
 
 	go that.handleIO()
 	return nil
