@@ -29,7 +29,7 @@ type ClientSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg             *rfb.ClientConfig    // 客户端配置信息
+	cfg             *rfb.Option          // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -43,7 +43,7 @@ type ClientSession struct {
 var _ rfb.ISession = new(ClientSession)
 
 // NewClient 创建客户端会话
-func NewClient(c net.Conn, cfg *rfb.ClientConfig) (*ClientSession, error) {
+func NewClient(c net.Conn, cfg *rfb.Option) (*ClientSession, error) {
 	enc := cfg.Encodings
 	if len(cfg.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}

@@ -13,7 +13,7 @@ type ClientFence struct {
 	payload []byte
 }
 
-func (that *ClientFence) Clone() rfb.ClientMessage {
+func (that *ClientFence) Clone() rfb.Message {
 
 	c := &ClientFence{
 		flags:   that.flags,
@@ -29,12 +29,12 @@ func (that *ClientFence) String() string {
 	return fmt.Sprintf("(type=%d)", that.Type())
 }
 
-func (that *ClientFence) Type() rfb.ClientMessageType {
-	return rfb.ClientFence
+func (that *ClientFence) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.ClientFence)
 }
 
 // 读取数据
-func (that *ClientFence) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *ClientFence) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &ClientFence{}
 	bytes := make([]byte, 3)
 	//c.Read(bytes)

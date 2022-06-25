@@ -14,33 +14,33 @@ import (
 )
 
 type Proxy struct {
-	rfbSvrCfg              *rfb.ServerConfig // proxy服务端监听vnc客户端的配置信息
-	rfbCliCfg              *rfb.ClientConfig // proxy客户端连接vnc服务端的配置信息
-	targetConfig           rfb.TargetConfig  // vnc服务端的链接参数
-	svrSession             rfb.ISession      // vnc客户端连接到proxy的会话
-	cliSession             rfb.ISession      // 链接到vnc服务端的会话
+	rfbSvrCfg              *rfb.Option      // proxy服务端监听vnc客户端的配置信息
+	rfbCliCfg              *rfb.Option      // proxy客户端连接vnc服务端的配置信息
+	targetConfig           rfb.TargetConfig // vnc服务端的链接参数
+	svrSession             rfb.ISession     // vnc客户端连接到proxy的会话
+	cliSession             rfb.ISession     // 链接到vnc服务端的会话
 	closed                 chan struct{}
-	errorCh                chan error             // 错误通道
-	proxyCli2VncSvrMsgChan chan rfb.ClientMessage // proxy客户端发送给vnc服务端的消息通道
-	vncSvr2ProxyMsgChan    chan rfb.ServerMessage // vnc服务端发送给proxy客户端的消息通道
-	vncCli2ProxyMsgChan    chan rfb.ClientMessage // vnc客户端发送给proxy服务端的消息通道
-	proxySvr2VncCliMsgChan chan rfb.ServerMessage // proxy服务端发送给vnc客户端的消息通道
+	errorCh                chan error       // 错误通道
+	proxyCli2VncSvrMsgChan chan rfb.Message // proxy客户端发送给vnc服务端的消息通道
+	vncSvr2ProxyMsgChan    chan rfb.Message // vnc服务端发送给proxy客户端的消息通道
+	vncCli2ProxyMsgChan    chan rfb.Message // vnc客户端发送给proxy服务端的消息通道
+	proxySvr2VncCliMsgChan chan rfb.Message // proxy服务端发送给vnc客户端的消息通道
 }
 
 // NewVncProxy 生成vnc proxy服务对象
-func NewVncProxy(svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *Proxy {
+func NewVncProxy(svrCfg *rfb.Option, cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *Proxy {
 	errorChan := make(chan error, 32)
 	vncProxy := &Proxy{
 		errorCh:                errorChan,
 		targetConfig:           targetCfg,
 		closed:                 make(chan struct{}),
-		proxyCli2VncSvrMsgChan: make(chan rfb.ClientMessage),
-		vncSvr2ProxyMsgChan:    make(chan rfb.ServerMessage),
-		vncCli2ProxyMsgChan:    make(chan rfb.ClientMessage),
-		proxySvr2VncCliMsgChan: make(chan rfb.ServerMessage),
+		proxyCli2VncSvrMsgChan: make(chan rfb.Message),
+		vncSvr2ProxyMsgChan:    make(chan rfb.Message),
+		vncCli2ProxyMsgChan:    make(chan rfb.Message),
+		proxySvr2VncCliMsgChan: make(chan rfb.Message),
 	}
 	if svrCfg == nil {
-		svrCfg = &rfb.ServerConfig{
+		svrCfg = &rfb.Option{
 			Encodings:   encodings.DefaultEncodings,
 			DesktopName: []byte("Vprix VNC Proxy"),
 			Width:       1024,
@@ -53,7 +53,7 @@ func NewVncProxy(svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, targetCfg r
 	}
 
 	if cliCfg == nil {
-		cliCfg = &rfb.ClientConfig{
+		cliCfg = &rfb.Option{
 			SecurityHandlers: []rfb.ISecurityHandler{&security.ClientAuthVNC{Password: vncProxy.targetConfig.Password}},
 			Encodings:        encodings.DefaultEncodings,
 			ErrorCh:          make(chan error),
@@ -103,7 +103,7 @@ func (that *Proxy) handleIO() {
 			that.errorCh <- msg
 		case msg := <-that.vncSvr2ProxyMsgChan:
 			// 收到vnc服务端发送给proxy客户端的消息，转发给proxy服务端, proxy服务端内部会把该消息转发给vnc客户端
-			sSessCfg := that.svrSession.Config().(*rfb.ServerConfig)
+			sSessCfg := that.svrSession.Config().(*rfb.Option)
 			disabled := false
 			// 如果该消息禁用，则跳过不转发该消息
 			for _, t := range sSessCfg.DisableMessageType {
@@ -118,7 +118,7 @@ func (that *Proxy) handleIO() {
 		case msg := <-that.vncCli2ProxyMsgChan:
 			// vnc客户端发送消息到proxy服务端的时候,需要对消息进行检查
 			// 有些消息不支持转发给vnc服务端
-			switch msg.Type() {
+			switch rfb.ClientMessageType(msg.Type()) {
 			case rfb.SetPixelFormat:
 				// 发现是设置像素格式的消息，则忽略
 				//that.rfbCliCfg.PixelFormat = msg.(*messages.SetPixelFormat).PF
@@ -139,7 +139,7 @@ func (that *Proxy) handleIO() {
 				// 发送编码消息给vnc服务端
 				that.proxyCli2VncSvrMsgChan <- &messages.SetEncodings{EncNum: gconv.Uint16(len(encTypes)), Encodings: encTypes}
 			default:
-				cliCfg := that.cliSession.Config().(*rfb.ClientConfig)
+				cliCfg := that.cliSession.Config().(*rfb.Option)
 				disabled := false
 				for _, t := range cliCfg.DisableMessageType {
 					if t == msg.Type() {

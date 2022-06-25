@@ -17,7 +17,7 @@ func (*ServerSecurityHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debugf("[VNC客户端->Proxy服务端]: 执行vnc握手第二步:[Security]")
 	}
-	cfg := session.Config().(*rfb.ServerConfig)
+	cfg := session.Config().(*rfb.Option)
 	var secType rfb.SecurityType
 	if session.ProtocolVersion() == rfb.ProtoVersion37 || session.ProtocolVersion() == rfb.ProtoVersion38 {
 		if err := binary.Write(session, binary.BigEndian, uint8(len(cfg.SecurityHandlers))); err != nil {

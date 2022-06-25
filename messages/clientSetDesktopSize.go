@@ -12,7 +12,7 @@ type SetDesktopSize struct {
 	buff *dbuffer.ByteBuffer
 }
 
-func (that *SetDesktopSize) Clone() rfb.ClientMessage {
+func (that *SetDesktopSize) Clone() rfb.Message {
 
 	c := &SetDesktopSize{
 		buff: dbuffer.GetByteBuffer(),
@@ -27,12 +27,12 @@ func (that *SetDesktopSize) String() string {
 	return fmt.Sprintf("(type=%d)", that.Type())
 }
 
-func (that *SetDesktopSize) Type() rfb.ClientMessageType {
-	return rfb.SetDesktopSize
+func (that *SetDesktopSize) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.SetDesktopSize)
 }
 
 // 读取数据
-func (that *SetDesktopSize) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *SetDesktopSize) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &SetDesktopSize{buff: dbuffer.GetByteBuffer()}
 	pad := make([]byte, 1)
 	if _, err := session.Read(pad); err != nil {

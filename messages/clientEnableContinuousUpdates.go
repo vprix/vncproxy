@@ -15,7 +15,7 @@ type EnableContinuousUpdates struct {
 	height uint16
 }
 
-func (that *EnableContinuousUpdates) Clone() rfb.ClientMessage {
+func (that *EnableContinuousUpdates) Clone() rfb.Message {
 
 	c := &EnableContinuousUpdates{
 		flag:   that.flag,
@@ -33,12 +33,12 @@ func (that *EnableContinuousUpdates) String() string {
 	return fmt.Sprintf("(type=%d,flag=%d,x=%d,y=%d,width=%d,height=%d)", that.Type(), that.flag, that.x, that.y, that.width, that.height)
 }
 
-func (that *EnableContinuousUpdates) Type() rfb.ClientMessageType {
-	return rfb.EnableContinuousUpdates
+func (that *EnableContinuousUpdates) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.EnableContinuousUpdates)
 }
 
 // 读取数据
-func (that *EnableContinuousUpdates) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *EnableContinuousUpdates) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &EnableContinuousUpdates{}
 	if err := binary.Read(session, binary.BigEndian, &msg.flag); err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ type ClientCutText struct {
 	Text   []byte  // 剪切板
 }
 
-func (that *ClientCutText) Clone() rfb.ClientMessage {
+func (that *ClientCutText) Clone() rfb.Message {
 	c := &ClientCutText{
 		Length: that.Length,
 		Text:   that.Text,
@@ -30,12 +30,12 @@ func (that *ClientCutText) String() string {
 }
 
 // Type returns MessageType
-func (that *ClientCutText) Type() rfb.ClientMessageType {
-	return rfb.ClientCutText
+func (that *ClientCutText) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.ClientCutText)
 }
 
 // Read 从会话中解析消息内容
-func (that *ClientCutText) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *ClientCutText) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &ClientCutText{}
 	// 读取填充字节
 	var pad [3]byte

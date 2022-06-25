@@ -13,7 +13,7 @@ type ServerCutText struct {
 	Text   []byte  // 剪切板内容
 }
 
-func (that *ServerCutText) Clone() rfb.ServerMessage {
+func (that *ServerCutText) Clone() rfb.Message {
 	return &ServerCutText{
 		Length: that.Length,
 		Text:   that.Text,
@@ -28,12 +28,12 @@ func (that *ServerCutText) String() string {
 	return fmt.Sprintf("lenght: %d", that.Length)
 }
 
-func (that *ServerCutText) Type() rfb.ServerMessageType {
-	return rfb.ServerCutText
+func (that *ServerCutText) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.ServerCutText)
 }
 
 // 读取消息数据
-func (that *ServerCutText) Read(session rfb.ISession) (rfb.ServerMessage, error) {
+func (that *ServerCutText) Read(session rfb.ISession) (rfb.Message, error) {
 	// 每次读取以后生成的都是一个新的对象
 	msg := &ServerCutText{}
 	var pad [3]byte

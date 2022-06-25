@@ -12,7 +12,7 @@ type SetPixelFormat struct {
 	PF rfb.PixelFormat // 像素格式
 }
 
-func (that *SetPixelFormat) Clone() rfb.ClientMessage {
+func (that *SetPixelFormat) Clone() rfb.Message {
 	c := &SetPixelFormat{
 		PF: that.PF,
 	}
@@ -29,8 +29,8 @@ func (that *SetPixelFormat) String() string {
 }
 
 // Type returns MessageType
-func (that *SetPixelFormat) Type() rfb.ClientMessageType {
-	return rfb.SetPixelFormat
+func (that *SetPixelFormat) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.SetPixelFormat)
 }
 
 // Write 写入像素格式
@@ -53,7 +53,7 @@ func (that *SetPixelFormat) Write(session rfb.ISession) error {
 }
 
 // Read 从链接中读取像素格式到当前对象
-func (that *SetPixelFormat) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *SetPixelFormat) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &SetPixelFormat{}
 	if err := binary.Read(session, binary.BigEndian, msg); err != nil {
 		return nil, err

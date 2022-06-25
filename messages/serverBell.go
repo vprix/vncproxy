@@ -9,7 +9,7 @@ import (
 // Bell 响铃
 type Bell struct{}
 
-func (that *Bell) Clone() rfb.ServerMessage {
+func (that *Bell) Clone() rfb.Message {
 	return &Bell{}
 }
 func (that *Bell) Supported(session rfb.ISession) bool {
@@ -22,12 +22,12 @@ func (that *Bell) String() string {
 }
 
 // Type 消息类型
-func (that *Bell) Type() rfb.ServerMessageType {
-	return rfb.Bell
+func (that *Bell) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.Bell)
 }
 
 // Read 响铃消息只有消息类型，没有数据
-func (that *Bell) Read(session rfb.ISession) (rfb.ServerMessage, error) {
+func (that *Bell) Read(session rfb.ISession) (rfb.Message, error) {
 	return &Bell{}, nil
 }
 

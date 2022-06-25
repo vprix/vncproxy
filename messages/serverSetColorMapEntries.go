@@ -15,7 +15,7 @@ type SetColorMapEntries struct {
 	Colors     []rfb.Color
 }
 
-func (that *SetColorMapEntries) Clone() rfb.ServerMessage {
+func (that *SetColorMapEntries) Clone() rfb.Message {
 
 	c := &SetColorMapEntries{
 		FirstColor: that.FirstColor,
@@ -34,11 +34,11 @@ func (that *SetColorMapEntries) String() string {
 }
 
 // Type returns MessageType
-func (*SetColorMapEntries) Type() rfb.ServerMessageType {
-	return rfb.SetColorMapEntries
+func (*SetColorMapEntries) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.SetColorMapEntries)
 }
 
-func (that *SetColorMapEntries) Read(session rfb.ISession) (rfb.ServerMessage, error) {
+func (that *SetColorMapEntries) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &SetColorMapEntries{}
 	// 先读取一个字节的填充
 	var pad [1]byte

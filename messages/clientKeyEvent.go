@@ -13,7 +13,7 @@ type KeyEvent struct {
 	Key  rfb.Key // 表示具体的键位，https://www.x.org/releases/X11R7.6/doc/xproto/x11protocol.html#keysym_encoding
 }
 
-func (that *KeyEvent) Clone() rfb.ClientMessage {
+func (that *KeyEvent) Clone() rfb.Message {
 
 	c := &KeyEvent{
 		Down: that.Down,
@@ -31,12 +31,12 @@ func (that *KeyEvent) String() string {
 }
 
 // Type returns MessageType
-func (that *KeyEvent) Type() rfb.ClientMessageType {
-	return rfb.KeyEvent
+func (that *KeyEvent) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.KeyEvent)
 }
 
 // Read 从会话中解析消息内容
-func (that *KeyEvent) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *KeyEvent) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &KeyEvent{}
 	if err := binary.Read(session, binary.BigEndian, msg); err != nil {
 		return nil, err

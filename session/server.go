@@ -24,7 +24,7 @@ type ServerSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg             *rfb.ServerConfig    // 配置信息
+	cfg             *rfb.Option          // 配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -37,7 +37,7 @@ type ServerSession struct {
 
 var _ rfb.ISession = new(ServerSession)
 
-func NewServerSession(c io.ReadWriteCloser, cfg *rfb.ServerConfig) *ServerSession {
+func NewServerSession(c io.ReadWriteCloser, cfg *rfb.Option) *ServerSession {
 	enc := cfg.Encodings
 	if len(cfg.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}

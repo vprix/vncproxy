@@ -19,16 +19,16 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 		logger.Debug("[VNC客户端->Proxy服务端]: vnc握手已结束，进入消息交互阶段[ServerMessageHandler]")
 	}
 
-	cfg := session.Config().(*rfb.ServerConfig)
+	cfg := session.Config().(*rfb.Option)
 	var err error
 	var wg sync.WaitGroup
 
 	defer func() {
 		_ = session.Close()
 	}()
-	clientMessages := make(map[rfb.ClientMessageType]rfb.ClientMessage)
+	clientMessages := make(map[rfb.ClientMessageType]rfb.Message)
 	for _, m := range cfg.Messages {
-		clientMessages[m.Type()] = m
+		clientMessages[rfb.ClientMessageType(m.Type())] = m
 	}
 	wg.Add(2)
 
@@ -44,7 +44,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 			case msg := <-cfg.Output:
 				// 收到proxy服务端消息，则转发写入到vnc客户端会话中。
 				if logger.IsDebug() {
-					logger.Debugf("[Proxy服务端->VNC客户端] 消息类型:%s,消息内容:%s", msg.Type(), msg.String())
+					logger.Debugf("[Proxy服务端->VNC客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(msg.Type()), msg.String())
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
@@ -94,7 +94,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC客户端->Proxy服务端] 消息类型:%s,消息内容:%s", parsedMsg.Type(), parsedMsg.String())
+					logger.Debugf("[VNC客户端->Proxy服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg.String())
 				}
 
 				cfg.Input <- parsedMsg

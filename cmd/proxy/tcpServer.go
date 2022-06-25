@@ -50,7 +50,7 @@ func (that *TcpSandBox) Setup() error {
 		glog.Fatalf("Error listen. %v", err)
 	}
 	fmt.Printf("Tcp proxy started! listening %s . vnc server %s:%d\n", that.lis.Addr().String(), that.cfg.GetString("vncHost"), that.cfg.GetInt("vncPort"))
-	svrCfg := &rfb.ServerConfig{
+	svrCfg := &rfb.Option{
 		Encodings:   encodings.DefaultEncodings,
 		DesktopName: []byte("Vprix VNC Proxy"),
 		Width:       1024,

@@ -19,11 +19,11 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debug("[Proxy客户端->VNC服务端]: vnc握手已结束，进入消息交互阶段[ClientMessageHandler]")
 	}
-	cfg := session.Config().(*rfb.ClientConfig)
+	cfg := session.Config().(*rfb.Option)
 	var err error
 
 	// proxy客户端支持的消息类型
-	serverMessages := make(map[rfb.ServerMessageType]rfb.ServerMessage)
+	serverMessages := make(map[rfb.MessageType]rfb.Message)
 	for _, m := range cfg.Messages {
 		serverMessages[m.Type()] = m
 	}
@@ -34,7 +34,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 			select {
 			case msg := <-cfg.Output:
 				if logger.IsDebug() {
-					logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", msg.Type(), msg.String())
+					logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
@@ -50,13 +50,13 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 			select {
 			default:
 				// 从会话中读取消息类型
-				var messageType rfb.ServerMessageType
+				var messageType rfb.MessageType
 				if err = binary.Read(session, binary.BigEndian, &messageType); err != nil {
 					cfg.ErrorCh <- err
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s", messageType)
+					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s", rfb.ClientMessageType(messageType))
 				}
 				// 判断proxy客户端是否支持该消息
 				msg, ok := serverMessages[messageType]
@@ -72,7 +72,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", parsedMsg.Type(), parsedMsg)
+					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg)
 				}
 				cfg.Input <- parsedMsg
 			}

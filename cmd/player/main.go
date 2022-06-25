@@ -102,7 +102,7 @@ func main() {
 		svr.AddSandBox(NewWSSandBox(cfg))
 	})
 }
-func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.ServerConfig, cliCfg *rfb.ClientConfig, rbfFile string) *vnc.Player {
+func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.Option, cliCfg *rfb.Option, rbfFile string) *vnc.Player {
 	play := vnc.NewPlayer(rbfFile, svrCfg)
 	go func() {
 		_ = play.Start(conn)

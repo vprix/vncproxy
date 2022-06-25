@@ -12,7 +12,7 @@ type PointerEvent struct {
 	X, Y uint16 // 当前 X,Y 坐标
 }
 
-func (that *PointerEvent) Clone() rfb.ClientMessage {
+func (that *PointerEvent) Clone() rfb.Message {
 
 	c := &PointerEvent{
 		Mask: that.Mask,
@@ -31,12 +31,12 @@ func (that *PointerEvent) String() string {
 }
 
 // Type returns MessageType
-func (that *PointerEvent) Type() rfb.ClientMessageType {
-	return rfb.PointerEvent
+func (that *PointerEvent) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.PointerEvent)
 }
 
 // Read 从会话中解析消息内容
-func (that *PointerEvent) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *PointerEvent) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &PointerEvent{}
 	if err := binary.Read(session, binary.BigEndian, msg); err != nil {
 		return nil, err

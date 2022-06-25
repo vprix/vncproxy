@@ -21,12 +21,12 @@ func (that *FramebufferUpdate) Supported(rfb.ISession) bool {
 	return true
 }
 
-func (that *FramebufferUpdate) Type() rfb.ServerMessageType {
-	return rfb.FramebufferUpdate
+func (that *FramebufferUpdate) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.FramebufferUpdate)
 }
 
 // 读取帧数据
-func (that *FramebufferUpdate) Read(session rfb.ISession) (rfb.ServerMessage, error) {
+func (that *FramebufferUpdate) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &FramebufferUpdate{}
 	var pad [1]byte
 	if err := binary.Read(session, binary.BigEndian, &pad); err != nil {
@@ -91,7 +91,7 @@ func (that *FramebufferUpdate) Write(session rfb.ISession) error {
 	return session.Flush()
 }
 
-func (that *FramebufferUpdate) Clone() rfb.ServerMessage {
+func (that *FramebufferUpdate) Clone() rfb.Message {
 
 	c := &FramebufferUpdate{
 		NumRect: that.NumRect,

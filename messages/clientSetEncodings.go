@@ -14,7 +14,7 @@ type SetEncodings struct {
 	Encodings []rfb.EncodingType
 }
 
-func (that *SetEncodings) Clone() rfb.ClientMessage {
+func (that *SetEncodings) Clone() rfb.Message {
 	c := &SetEncodings{
 		EncNum:    that.EncNum,
 		Encodings: that.Encodings,
@@ -36,12 +36,12 @@ func (that *SetEncodings) String() string {
 }
 
 // Type returns MessageType
-func (that *SetEncodings) Type() rfb.ClientMessageType {
-	return rfb.SetEncodings
+func (that *SetEncodings) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.SetEncodings)
 }
 
 // Read 从会话中解析消息内容
-func (that *SetEncodings) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *SetEncodings) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &SetEncodings{}
 	//读取一个字节的填充数据
 	var pad [1]byte

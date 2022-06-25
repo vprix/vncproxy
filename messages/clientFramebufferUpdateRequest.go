@@ -16,7 +16,7 @@ type FramebufferUpdateRequest struct {
 	Width, Height uint16 // 区域的宽度和高度
 }
 
-func (that *FramebufferUpdateRequest) Clone() rfb.ClientMessage {
+func (that *FramebufferUpdateRequest) Clone() rfb.Message {
 
 	c := &FramebufferUpdateRequest{
 		Inc:    that.Inc,
@@ -37,12 +37,12 @@ func (that *FramebufferUpdateRequest) String() string {
 }
 
 // Type returns MessageType
-func (that *FramebufferUpdateRequest) Type() rfb.ClientMessageType {
-	return rfb.FramebufferUpdateRequest
+func (that *FramebufferUpdateRequest) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.FramebufferUpdateRequest)
 }
 
 // Read 从会话中解析消息内容
-func (that *FramebufferUpdateRequest) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *FramebufferUpdateRequest) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &FramebufferUpdateRequest{}
 	if err := binary.Read(session, binary.BigEndian, msg); err != nil {
 		return nil, err

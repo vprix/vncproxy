@@ -14,20 +14,20 @@ import (
 )
 
 type Player struct {
-	rfbSvrCfg     *rfb.ServerConfig      // proxy服务端监听vnc客户端的配置信息
+	rfbSvrCfg     *rfb.Option            // proxy服务端监听vnc客户端的配置信息
 	svrSession    *session.ServerSession // vnc客户端连接到proxy的会话
 	playerSession *session.PlayerSession
 	closed        chan struct{}
 }
 
-func NewPlayer(filePath string, svrCfg *rfb.ServerConfig) *Player {
+func NewPlayer(filePath string, svrCfg *rfb.Option) *Player {
 	if svrCfg == nil {
-		svrCfg = &rfb.ServerConfig{
+		svrCfg = &rfb.Option{
 			PixelFormat:      rfb.PixelFormat32bit,
 			Messages:         messages.DefaultClientMessage,
 			Encodings:        encodings.DefaultEncodings,
-			Input:            make(chan rfb.ClientMessage),
-			Output:           make(chan rfb.ServerMessage),
+			Input:            make(chan rfb.Message),
+			Output:           make(chan rfb.Message),
 			ErrorCh:          make(chan error),
 			SecurityHandlers: []rfb.ISecurityHandler{&security.ServerAuthNone{}},
 		}
@@ -36,7 +36,7 @@ func NewPlayer(filePath string, svrCfg *rfb.ServerConfig) *Player {
 		closed:    make(chan struct{}),
 		rfbSvrCfg: svrCfg,
 		playerSession: session.NewPlayerSession(filePath,
-			&rfb.ServerConfig{
+			&rfb.Option{
 				ErrorCh:   svrCfg.ErrorCh,
 				Encodings: encodings.DefaultEncodings,
 			},

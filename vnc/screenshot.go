@@ -12,19 +12,19 @@ import (
 )
 
 type Screenshot struct {
-	cliCfg        *rfb.ClientConfig
+	cliCfg        *rfb.Option
 	targetCfg     rfb.TargetConfig
 	cliSession    *session.ClientSession // 链接到vnc服务端的会话
 	canvasSession *session.CanvasSession
 }
 
 func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
-	cliCfg := &rfb.ClientConfig{
+	cliCfg := &rfb.Option{
 		PixelFormat: rfb.PixelFormat32bit,
 		Messages:    messages.DefaultServerMessages,
 		Encodings:   encodings.DefaultEncodings,
-		Output:      make(chan rfb.ClientMessage),
-		Input:       make(chan rfb.ServerMessage),
+		Output:      make(chan rfb.Message),
+		Input:       make(chan rfb.Message),
 		ErrorCh:     make(chan error),
 	}
 	if len(targetCfg.Password) > 0 {
@@ -96,7 +96,7 @@ func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 	for {
 		select {
 		case msg := <-that.cliCfg.Input:
-			if msg.Type() == rfb.FramebufferUpdate {
+			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.canvasSession)
 				if err != nil {
 					return nil, err

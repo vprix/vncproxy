@@ -13,7 +13,7 @@ type QEMUExtKeyEvent struct {
 	KeyCode        uint32  // scan code
 }
 
-func (that *QEMUExtKeyEvent) Clone() rfb.ClientMessage {
+func (that *QEMUExtKeyEvent) Clone() rfb.Message {
 
 	c := &QEMUExtKeyEvent{
 		SubMessageType: that.SubMessageType,
@@ -26,15 +26,15 @@ func (that *QEMUExtKeyEvent) Clone() rfb.ClientMessage {
 func (that *QEMUExtKeyEvent) Supported(session rfb.ISession) bool {
 	return true
 }
-func (that *QEMUExtKeyEvent) Type() rfb.ClientMessageType {
-	return rfb.QEMUExtendedKeyEvent
+func (that *QEMUExtKeyEvent) Type() rfb.MessageType {
+	return rfb.MessageType(rfb.QEMUExtendedKeyEvent)
 }
 
 func (that *QEMUExtKeyEvent) String() string {
 	return fmt.Sprintf("SubMessageType=%d,DownFlag=%d,KeySym=%d,KeyCode=%d", that.SubMessageType, that.DownFlag, that.KeySym, that.KeyCode)
 }
 
-func (that *QEMUExtKeyEvent) Read(session rfb.ISession) (rfb.ClientMessage, error) {
+func (that *QEMUExtKeyEvent) Read(session rfb.ISession) (rfb.Message, error) {
 	msg := &QEMUExtKeyEvent{}
 	if err := binary.Read(session, binary.BigEndian, msg); err != nil {
 		return nil, err

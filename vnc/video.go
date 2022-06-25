@@ -12,28 +12,28 @@ import (
 )
 
 type Video struct {
-	cliCfg        *rfb.ClientConfig
+	cliCfg        *rfb.Option
 	targetCfg     rfb.TargetConfig
 	cliSession    *session.ClientSession // 链接到vnc服务端的会话
 	canvasSession *session.CanvasSession
 }
 
-func NewVideo(cliCfg *rfb.ClientConfig, targetCfg rfb.TargetConfig) *Video {
+func NewVideo(cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *Video {
 	if cliCfg == nil {
-		cliCfg = &rfb.ClientConfig{
+		cliCfg = &rfb.Option{
 			PixelFormat: rfb.PixelFormat32bit,
 			Messages:    messages.DefaultServerMessages,
 			Encodings:   encodings.DefaultEncodings,
-			Output:      make(chan rfb.ClientMessage),
-			Input:       make(chan rfb.ServerMessage),
+			Output:      make(chan rfb.Message),
+			Input:       make(chan rfb.Message),
 			ErrorCh:     make(chan error),
 		}
 	}
 	if cliCfg.Output == nil {
-		cliCfg.Output = make(chan rfb.ClientMessage)
+		cliCfg.Output = make(chan rfb.Message)
 	}
 	if cliCfg.Input == nil {
-		cliCfg.Input = make(chan rfb.ServerMessage)
+		cliCfg.Input = make(chan rfb.Message)
 	}
 	if cliCfg.ErrorCh == nil {
 		cliCfg.ErrorCh = make(chan error)
@@ -106,7 +106,7 @@ func (that *Video) Start() error {
 		case msg := <-that.cliCfg.Output:
 			logger.Debugf("client message received.messageType:%d,message:%s", msg.Type(), msg)
 		case msg := <-that.cliCfg.Input:
-			if msg.Type() == rfb.FramebufferUpdate {
+			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.canvasSession)
 				if err != nil {
 					return err

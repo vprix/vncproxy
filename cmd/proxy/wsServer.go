@@ -47,7 +47,7 @@ func (that *WSSandBox) Setup() error {
 	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
-			svrCfg := &rfb.ServerConfig{
+			svrCfg := &rfb.Option{
 				Encodings:   encodings.DefaultEncodings,
 				DesktopName: []byte("Vprix VNC Proxy"),
 				Width:       1024,
