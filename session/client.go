@@ -29,7 +29,7 @@ type ClientSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg             *rfb.Option          // 客户端配置信息
+	options         *rfb.Options         // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -43,43 +43,48 @@ type ClientSession struct {
 var _ rfb.ISession = new(ClientSession)
 
 // NewClient 创建客户端会话
-func NewClient(c net.Conn, cfg *rfb.Option) (*ClientSession, error) {
-	enc := cfg.Encodings
-	if len(cfg.Encodings) == 0 {
+func NewClient(options *rfb.Options) (*ClientSession, error) {
+	enc := options.Encodings
+	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(cfg.PixelFormat)
+	desktop.SetPixelFormat(options.PixelFormat)
 
-	if cfg.QuitCh == nil {
-		cfg.QuitCh = make(chan struct{})
+	if options.QuitCh == nil {
+		options.QuitCh = make(chan struct{})
 	}
-	if cfg.ErrorCh == nil {
-		cfg.ErrorCh = make(chan error, 32)
+	if options.ErrorCh == nil {
+		options.ErrorCh = make(chan error, 32)
 	}
+	c, err := options.CreateConn()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ClientSession{
-		c:         c,
+		c:         c.(net.Conn),
 		br:        bufio.NewReader(c),
 		bw:        bufio.NewWriter(c),
-		cfg:       cfg,
+		options:   options,
 		desktop:   desktop,
 		encodings: enc,
-		quitCh:    cfg.QuitCh,
-		errorCh:   cfg.ErrorCh,
+		quitCh:    options.QuitCh,
+		errorCh:   options.ErrorCh,
 		swap:      gmap.New(true),
 	}, nil
 }
 
 func (that *ClientSession) Run() {
-	if len(that.cfg.Handlers) == 0 {
-		that.cfg.Handlers = DefaultClientHandlers
+	if len(that.options.Handlers) == 0 {
+		that.options.Handlers = DefaultClientHandlers
 	}
-	for _, h := range that.cfg.Handlers {
+	for _, h := range that.options.Handlers {
 		if err := h.Handle(that); err != nil {
-			that.cfg.ErrorCh <- fmt.Errorf("握手失败，请检查服务是否启动: %v", err)
+			that.options.ErrorCh <- fmt.Errorf("握手失败，请检查服务是否启动: %v", err)
 			err = that.Close()
 			if err != nil {
-				that.cfg.ErrorCh <- fmt.Errorf("关闭client失败: %v", err)
+				that.options.ErrorCh <- fmt.Errorf("关闭client失败: %v", err)
 			}
 			return
 		}
@@ -91,9 +96,9 @@ func (that *ClientSession) Conn() io.ReadWriteCloser {
 	return that.c
 }
 
-// Config 获取配置信息
-func (that *ClientSession) Config() interface{} {
-	return that.cfg
+// Options 获取配置信息
+func (that *ClientSession) Options() *rfb.Options {
+	return that.options
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -185,4 +190,8 @@ func (that *ClientSession) Swap() *gmap.Map {
 // Type session类型
 func (that *ClientSession) Type() rfb.SessionType {
 	return rfb.ClientSessionType
+}
+
+func (that *ClientSession) Messages() []rfb.Message {
+	return that.options.Messages
 }

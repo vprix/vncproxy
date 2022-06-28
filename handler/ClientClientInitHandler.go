@@ -15,7 +15,7 @@ func (that *ClientClientInitHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debug("[Proxy客户端->VNC服务端]: 执行vnc握手步骤第三步[ClientInit]")
 	}
-	cfg := session.Config().(*rfb.Option)
+	cfg := session.Options()
 	var shared uint8
 	if cfg.Exclusive {
 		shared = 0

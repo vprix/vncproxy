@@ -118,7 +118,7 @@ func main() {
 	})
 }
 
-func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.Option, cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *vnc.Proxy {
+func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.Options, cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *vnc.Proxy {
 	p := vnc.NewVncProxy(svrCfg, cliCfg, targetCfg)
 	go p.Start(conn)
 	return p

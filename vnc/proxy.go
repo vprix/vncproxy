@@ -2,6 +2,7 @@ package vnc
 
 import (
 	"github.com/gogf/gf/util/gconv"
+	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"
@@ -14,8 +15,8 @@ import (
 )
 
 type Proxy struct {
-	rfbSvrCfg              *rfb.Option      // proxy服务端监听vnc客户端的配置信息
-	rfbCliCfg              *rfb.Option      // proxy客户端连接vnc服务端的配置信息
+	rfbSvrCfg              *rfb.Options     // proxy服务端监听vnc客户端的配置信息
+	rfbCliCfg              *rfb.Options     // proxy客户端连接vnc服务端的配置信息
 	targetConfig           rfb.TargetConfig // vnc服务端的链接参数
 	svrSession             rfb.ISession     // vnc客户端连接到proxy的会话
 	cliSession             rfb.ISession     // 链接到vnc服务端的会话
@@ -28,7 +29,7 @@ type Proxy struct {
 }
 
 // NewVncProxy 生成vnc proxy服务对象
-func NewVncProxy(svrCfg *rfb.Option, cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *Proxy {
+func NewVncProxy(svrCfg *rfb.Options, cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *Proxy {
 	errorChan := make(chan error, 32)
 	vncProxy := &Proxy{
 		errorCh:                errorChan,
@@ -40,7 +41,7 @@ func NewVncProxy(svrCfg *rfb.Option, cliCfg *rfb.Option, targetCfg rfb.TargetCon
 		proxySvr2VncCliMsgChan: make(chan rfb.Message),
 	}
 	if svrCfg == nil {
-		svrCfg = &rfb.Option{
+		svrCfg = &rfb.Options{
 			Encodings:   encodings.DefaultEncodings,
 			DesktopName: []byte("Vprix VNC Proxy"),
 			Width:       1024,
@@ -53,7 +54,7 @@ func NewVncProxy(svrCfg *rfb.Option, cliCfg *rfb.Option, targetCfg rfb.TargetCon
 	}
 
 	if cliCfg == nil {
-		cliCfg = &rfb.Option{
+		cliCfg = &rfb.Options{
 			SecurityHandlers: []rfb.ISecurityHandler{&security.ClientAuthVNC{Password: vncProxy.targetConfig.Password}},
 			Encodings:        encodings.DefaultEncodings,
 			ErrorCh:          make(chan error),
@@ -86,7 +87,17 @@ func (that *Proxy) Start(conn io.ReadWriteCloser) {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	session.NewServerSession(conn, that.rfbSvrCfg).Run()
+	that.rfbSvrCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+		return conn, nil
+	}
+	go func() {
+		sess, err := session.NewServerSession(that.rfbSvrCfg)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		sess.Run()
+	}()
 	return
 }
 
@@ -103,7 +114,7 @@ func (that *Proxy) handleIO() {
 			that.errorCh <- msg
 		case msg := <-that.vncSvr2ProxyMsgChan:
 			// 收到vnc服务端发送给proxy客户端的消息，转发给proxy服务端, proxy服务端内部会把该消息转发给vnc客户端
-			sSessCfg := that.svrSession.Config().(*rfb.Option)
+			sSessCfg := that.svrSession.Options()
 			disabled := false
 			// 如果该消息禁用，则跳过不转发该消息
 			for _, t := range sSessCfg.DisableMessageType {
@@ -139,7 +150,7 @@ func (that *Proxy) handleIO() {
 				// 发送编码消息给vnc服务端
 				that.proxyCli2VncSvrMsgChan <- &messages.SetEncodings{EncNum: gconv.Uint16(len(encTypes)), Encodings: encTypes}
 			default:
-				cliCfg := that.cliSession.Config().(*rfb.Option)
+				cliCfg := that.cliSession.Options()
 				disabled := false
 				for _, t := range cliCfg.DisableMessageType {
 					if t == msg.Type() {
@@ -156,7 +167,7 @@ func (that *Proxy) handleIO() {
 }
 
 // Handle 建立远程链接
-func (that *Proxy) Handle(sess rfb.ISession) error {
+func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 	timeout := 10 * time.Second
 	if that.targetConfig.Timeout > 0 {
 		timeout = that.targetConfig.Timeout
@@ -166,11 +177,10 @@ func (that *Proxy) Handle(sess rfb.ISession) error {
 		network = that.targetConfig.Network
 	}
 
-	clientConn, err := net.DialTimeout(network, that.targetConfig.Addr(), timeout)
-	if err != nil {
-		return err
+	that.rfbCliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+		return net.DialTimeout(network, that.targetConfig.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(clientConn, that.rfbCliCfg)
+	that.cliSession, err = session.NewClient(that.rfbCliCfg)
 	if err != nil {
 		return err
 	}

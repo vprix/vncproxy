@@ -3,22 +3,18 @@ package session
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"github.com/gogf/gf/container/gmap"
-	"github.com/gogf/gf/os/gfile"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
-	"os"
 )
 
 type PlayerSession struct {
-	rbsFile string
-	c       io.ReadWriteCloser
-	br      *bufio.Reader
-	bw      *bufio.Writer
+	c  io.ReadWriteCloser
+	br *bufio.Reader
+	bw *bufio.Writer
 
-	cfg             *rfb.Option          // 配置信息
+	options         *rfb.Options         // 配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -29,36 +25,31 @@ type PlayerSession struct {
 	errorCh chan error
 }
 
-func NewPlayerSession(rbsFile string, cfg *rfb.Option) *PlayerSession {
-	enc := cfg.Encodings
-	if len(cfg.Encodings) == 0 {
+func NewPlayerSession(options *rfb.Options) *PlayerSession {
+	enc := options.Encodings
+	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	if cfg.QuitCh == nil {
-		cfg.QuitCh = make(chan struct{})
+	if options.QuitCh == nil {
+		options.QuitCh = make(chan struct{})
 	}
-	if cfg.ErrorCh == nil {
-		cfg.ErrorCh = make(chan error, 32)
+	if options.ErrorCh == nil {
+		options.ErrorCh = make(chan error, 32)
 	}
 	return &PlayerSession{
-		rbsFile:   rbsFile,
-		cfg:       cfg,
+		options:   options,
 		desktop:   desktop,
 		encodings: enc,
-		errorCh:   cfg.ErrorCh,
-		quitCh:    cfg.QuitCh,
+		errorCh:   options.ErrorCh,
+		quitCh:    options.QuitCh,
 		swap:      gmap.New(true),
 	}
 }
 
 func (that *PlayerSession) Run() {
-	if !gfile.Exists(that.rbsFile) {
-		that.errorCh <- fmt.Errorf("要保存的文件[%s]不存在", that.rbsFile)
-		return
-	}
 	var err error
-	that.c, err = gfile.OpenFile(that.rbsFile, os.O_RDONLY, 0644)
+	that.c, err = that.options.CreateConn()
 	if err != nil {
 		that.errorCh <- err
 		return
@@ -130,9 +121,9 @@ func (that *PlayerSession) Conn() io.ReadWriteCloser {
 	return that.c
 }
 
-// Config 获取配置信息
-func (that *PlayerSession) Config() interface{} {
-	return that.cfg
+// Options 获取配置信息
+func (that *PlayerSession) Options() *rfb.Options {
+	return that.options
 }
 
 // Desktop 获取桌面对象
@@ -213,4 +204,8 @@ func (that *PlayerSession) Swap() *gmap.Map {
 }
 func (that *PlayerSession) Type() rfb.SessionType {
 	return rfb.PlayerSessionType
+}
+
+func (that *PlayerSession) Messages() []rfb.Message {
+	return that.options.Messages
 }

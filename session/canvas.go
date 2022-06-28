@@ -12,7 +12,7 @@ import (
 type CanvasSession struct {
 	canvas *canvas.VncCanvas
 
-	cfg             *rfb.Option          // 客户端配置信息
+	options         *rfb.Options         // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -24,32 +24,32 @@ type CanvasSession struct {
 }
 
 // NewCanvasSession 创建客户端会话
-func NewCanvasSession(cfg *rfb.Option) *CanvasSession {
-	enc := cfg.Encodings
-	if len(cfg.Encodings) == 0 {
+func NewCanvasSession(options *rfb.Options) *CanvasSession {
+	enc := options.Encodings
+	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(cfg.PixelFormat)
-	if cfg.QuitCh == nil {
-		cfg.QuitCh = make(chan struct{})
+	desktop.SetPixelFormat(options.PixelFormat)
+	if options.QuitCh == nil {
+		options.QuitCh = make(chan struct{})
 	}
-	if cfg.ErrorCh == nil {
-		cfg.ErrorCh = make(chan error, 32)
+	if options.ErrorCh == nil {
+		options.ErrorCh = make(chan error, 32)
 	}
 	return &CanvasSession{
-		cfg:       cfg,
+		options:   options,
 		desktop:   desktop,
 		encodings: enc,
-		quitCh:    cfg.QuitCh,
-		errorCh:   cfg.ErrorCh,
+		quitCh:    options.QuitCh,
+		errorCh:   options.ErrorCh,
 		swap:      gmap.New(true),
 	}
 }
 
 func (that *CanvasSession) Run() {
 	that.canvas = canvas.NewVncCanvas(int(that.desktop.Width()), int(that.desktop.Height()))
-	that.canvas.DrawCursor = that.cfg.DrawCursor
+	that.canvas.DrawCursor = that.options.DrawCursor
 }
 
 // Conn 获取会话底层的网络链接
@@ -57,9 +57,9 @@ func (that *CanvasSession) Conn() io.ReadWriteCloser {
 	return that.canvas
 }
 
-// Config 获取配置信息
-func (that *CanvasSession) Config() interface{} {
-	return that.cfg
+// Options 获取配置信息
+func (that *CanvasSession) Options() *rfb.Options {
+	return that.options
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -152,4 +152,8 @@ func (that *CanvasSession) Swap() *gmap.Map {
 // Type session类型
 func (that *CanvasSession) Type() rfb.SessionType {
 	return rfb.CanvasSessionType
+}
+
+func (that *CanvasSession) Messages() []rfb.Message {
+	return that.options.Messages
 }

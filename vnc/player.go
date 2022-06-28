@@ -2,6 +2,8 @@ package vnc
 
 import (
 	"encoding/binary"
+	"fmt"
+	"github.com/gogf/gf/os/gfile"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
@@ -10,19 +12,20 @@ import (
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
 	"io"
+	"os"
 	"time"
 )
 
 type Player struct {
-	rfbSvrCfg     *rfb.Option            // proxy服务端监听vnc客户端的配置信息
+	rfbSvrCfg     *rfb.Options           // proxy服务端监听vnc客户端的配置信息
 	svrSession    *session.ServerSession // vnc客户端连接到proxy的会话
 	playerSession *session.PlayerSession
 	closed        chan struct{}
 }
 
-func NewPlayer(filePath string, svrCfg *rfb.Option) *Player {
+func NewPlayer(filePath string, svrCfg *rfb.Options) *Player {
 	if svrCfg == nil {
-		svrCfg = &rfb.Option{
+		svrCfg = &rfb.Options{
 			PixelFormat:      rfb.PixelFormat32bit,
 			Messages:         messages.DefaultClientMessage,
 			Encodings:        encodings.DefaultEncodings,
@@ -35,10 +38,16 @@ func NewPlayer(filePath string, svrCfg *rfb.Option) *Player {
 	play := &Player{
 		closed:    make(chan struct{}),
 		rfbSvrCfg: svrCfg,
-		playerSession: session.NewPlayerSession(filePath,
-			&rfb.Option{
+		playerSession: session.NewPlayerSession(
+			&rfb.Options{
 				ErrorCh:   svrCfg.ErrorCh,
 				Encodings: encodings.DefaultEncodings,
+				CreateConn: func() (io.ReadWriteCloser, error) {
+					if !gfile.Exists(filePath) {
+						return nil, fmt.Errorf("要保存的文件[%s]不存在", filePath)
+					}
+					return gfile.OpenFile(filePath, os.O_RDONLY, 0644)
+				},
 			},
 		),
 	}
@@ -57,7 +66,17 @@ func (that *Player) Start(conn io.ReadWriteCloser) error {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	go session.NewServerSession(conn, that.rfbSvrCfg).Run()
+	that.rfbSvrCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+		return conn, nil
+	}
+	go func() {
+		sess, err := session.NewServerSession(that.rfbSvrCfg)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		sess.Run()
+	}()
 
 	return nil
 }

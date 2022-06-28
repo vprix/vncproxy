@@ -7,20 +7,21 @@ import (
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
+	"io"
 	"net"
 	"time"
 )
 
 type Video struct {
-	cliCfg        *rfb.Option
+	cliCfg        *rfb.Options
 	targetCfg     rfb.TargetConfig
 	cliSession    *session.ClientSession // 链接到vnc服务端的会话
 	canvasSession *session.CanvasSession
 }
 
-func NewVideo(cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *Video {
+func NewVideo(cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *Video {
 	if cliCfg == nil {
-		cliCfg = &rfb.Option{
+		cliCfg = &rfb.Options{
 			PixelFormat: rfb.PixelFormat32bit,
 			Messages:    messages.DefaultServerMessages,
 			Encodings:   encodings.DefaultEncodings,
@@ -56,7 +57,7 @@ func NewVideo(cliCfg *rfb.Option, targetCfg rfb.TargetConfig) *Video {
 }
 
 func (that *Video) Start() error {
-
+	var err error
 	timeout := 10 * time.Second
 	if that.targetCfg.Timeout > 0 {
 		timeout = that.targetCfg.Timeout
@@ -65,14 +66,10 @@ func (that *Video) Start() error {
 	if len(that.targetCfg.Network) > 0 {
 		network = that.targetCfg.Network
 	}
-	clientConn, err := net.DialTimeout(network, that.targetCfg.Addr(), timeout)
-	if err != nil {
-		return err
+	that.cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(clientConn, that.cliCfg)
-	if err != nil {
-		return err
-	}
+	that.cliSession, err = session.NewClient(that.cliCfg)
 
 	that.cliSession.Run()
 	encS := []rfb.EncodingType{

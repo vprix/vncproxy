@@ -18,7 +18,7 @@ func (*ClientSecurityHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debugf("[Proxy客户端->VNC服务端]: 执行vnc握手第二步:[Security]")
 	}
-	cfg := session.Config().(*rfb.Option)
+	cfg := session.Options()
 	// 读取vnc服务端支持的安全认证套件数量
 	var numSecurityTypes uint8
 	if err := binary.Read(session, binary.BigEndian, &numSecurityTypes); err != nil {

@@ -19,7 +19,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 		logger.Debug("[VNC客户端->Proxy服务端]: vnc握手已结束，进入消息交互阶段[ServerMessageHandler]")
 	}
 
-	cfg := session.Config().(*rfb.Option)
+	cfg := session.Options()
 	var err error
 	var wg sync.WaitGroup
 
@@ -27,7 +27,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 		_ = session.Close()
 	}()
 	clientMessages := make(map[rfb.ClientMessageType]rfb.Message)
-	for _, m := range cfg.Messages {
+	for _, m := range session.Messages() {
 		clientMessages[rfb.ClientMessageType(m.Type())] = m
 	}
 	wg.Add(2)

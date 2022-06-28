@@ -3,24 +3,19 @@ package session
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"github.com/gogf/gf/container/gmap"
-	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/os/gtime"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
-	"os"
 )
 
 const RBSVersion = "RBS 001.001\n"
 
 type RecorderSession struct {
-	rbsFile string
-	c       io.ReadWriteCloser
-	bw      *bufio.Writer
+	c  io.ReadWriteCloser
+	bw *bufio.Writer
 
-	cfg             *rfb.Option          // 客户端配置信息
+	options         *rfb.Options         // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -34,43 +29,33 @@ type RecorderSession struct {
 var _ rfb.ISession = new(RecorderSession)
 
 // NewRecorder 创建客户端会话
-func NewRecorder(saveFilePath string, cfg *rfb.Option) *RecorderSession {
-	enc := cfg.Encodings
-	if len(cfg.Encodings) == 0 {
+func NewRecorder(options *rfb.Options) *RecorderSession {
+	enc := options.Encodings
+	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(cfg.PixelFormat)
+	desktop.SetPixelFormat(options.PixelFormat)
 
-	if cfg.QuitCh == nil {
-		cfg.QuitCh = make(chan struct{})
+	if options.QuitCh == nil {
+		options.QuitCh = make(chan struct{})
 	}
-	if cfg.ErrorCh == nil {
-		cfg.ErrorCh = make(chan error, 32)
+	if options.ErrorCh == nil {
+		options.ErrorCh = make(chan error, 32)
 	}
 	return &RecorderSession{
-		rbsFile:   saveFilePath,
-		cfg:       cfg,
+		options:   options,
 		encodings: enc,
 		desktop:   desktop,
-		quitCh:    cfg.QuitCh,
-		errorCh:   cfg.ErrorCh,
+		quitCh:    options.QuitCh,
+		errorCh:   options.ErrorCh,
 		swap:      gmap.New(true),
 	}
 }
 
 func (that *RecorderSession) Run() {
-	if gfile.Exists(that.rbsFile) {
-		that.rbsFile = fmt.Sprintf("%s%s%s_%d%s",
-			gfile.Dir(that.rbsFile),
-			gfile.Separator,
-			gfile.Name(gfile.Basename(that.rbsFile)),
-			gtime.Now().Unix(),
-			gfile.Ext(gfile.Basename(that.rbsFile)),
-		)
-	}
 	var err error
-	that.c, err = gfile.OpenFile(that.rbsFile, os.O_RDWR|os.O_CREATE, 0644)
+	that.c, err = that.options.CreateConn()
 	if err != nil {
 		that.errorCh <- err
 		return
@@ -131,9 +116,9 @@ func (that *RecorderSession) Conn() io.ReadWriteCloser {
 	return that.c
 }
 
-// Config 获取配置信息
-func (that *RecorderSession) Config() interface{} {
-	return that.cfg
+// Options 获取配置信息
+func (that *RecorderSession) Options() *rfb.Options {
+	return that.options
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -217,4 +202,8 @@ func (that *RecorderSession) Swap() *gmap.Map {
 // Type session类型
 func (that *RecorderSession) Type() rfb.SessionType {
 	return rfb.RecorderSessionType
+}
+
+func (that *RecorderSession) Messages() []rfb.Message {
+	return that.options.Messages
 }

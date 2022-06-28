@@ -24,7 +24,7 @@ type ServerSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	cfg             *rfb.Option          // 配置信息
+	options         *rfb.Options         // 配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -37,38 +37,43 @@ type ServerSession struct {
 
 var _ rfb.ISession = new(ServerSession)
 
-func NewServerSession(c io.ReadWriteCloser, cfg *rfb.Option) *ServerSession {
-	enc := cfg.Encodings
-	if len(cfg.Encodings) == 0 {
+func NewServerSession(options *rfb.Options) (*ServerSession, error) {
+	enc := options.Encodings
+	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(cfg.PixelFormat)
+	desktop.SetPixelFormat(options.PixelFormat)
 
-	if cfg.QuitCh == nil {
-		cfg.QuitCh = make(chan struct{})
+	if options.QuitCh == nil {
+		options.QuitCh = make(chan struct{})
 	}
-	if cfg.ErrorCh == nil {
-		cfg.ErrorCh = make(chan error, 32)
+	if options.ErrorCh == nil {
+		options.ErrorCh = make(chan error, 32)
 	}
+	c, err := options.CreateConn()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ServerSession{
 		c:         c,
 		br:        bufio.NewReader(c),
 		bw:        bufio.NewWriter(c),
-		cfg:       cfg,
+		options:   options,
 		desktop:   desktop,
 		encodings: enc,
-		quitCh:    cfg.QuitCh,
-		errorCh:   cfg.ErrorCh,
+		quitCh:    options.QuitCh,
+		errorCh:   options.ErrorCh,
 		swap:      gmap.New(true),
-	}
+	}, nil
 }
 
 func (that *ServerSession) Run() {
-	if len(that.cfg.Handlers) == 0 {
-		that.cfg.Handlers = DefaultServerHandlers
+	if len(that.options.Handlers) == 0 {
+		that.options.Handlers = DefaultServerHandlers
 	}
-	for _, h := range that.cfg.Handlers {
+	for _, h := range that.options.Handlers {
 		if err := h.Handle(that); err != nil {
 			that.errorCh <- err
 			err = that.Close()
@@ -83,8 +88,8 @@ func (that *ServerSession) Run() {
 func (that *ServerSession) Conn() io.ReadWriteCloser {
 	return that.c
 }
-func (that *ServerSession) Config() interface{} {
-	return that.cfg
+func (that *ServerSession) Options() *rfb.Options {
+	return that.options
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -110,7 +115,7 @@ func (that *ServerSession) Encodings() []rfb.IEncoding {
 // SetEncodings 设置编码格式
 func (that *ServerSession) SetEncodings(encs []rfb.EncodingType) error {
 	es := make(map[rfb.EncodingType]rfb.IEncoding)
-	for _, enc := range that.cfg.Encodings {
+	for _, enc := range that.options.Encodings {
 		es[enc.Type()] = enc
 	}
 	for _, encType := range encs {
@@ -178,4 +183,8 @@ func (that *ServerSession) Swap() *gmap.Map {
 // Type session类型
 func (that *ServerSession) Type() rfb.SessionType {
 	return rfb.ServerSessionType
+}
+
+func (that *ServerSession) Messages() []rfb.Message {
+	return that.options.Messages
 }

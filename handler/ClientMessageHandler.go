@@ -19,12 +19,12 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debug("[Proxy客户端->VNC服务端]: vnc握手已结束，进入消息交互阶段[ClientMessageHandler]")
 	}
-	cfg := session.Config().(*rfb.Option)
+	cfg := session.Options()
 	var err error
 
 	// proxy客户端支持的消息类型
 	serverMessages := make(map[rfb.MessageType]rfb.Message)
-	for _, m := range cfg.Messages {
+	for _, m := range session.Messages() {
 		serverMessages[m.Type()] = m
 	}
 

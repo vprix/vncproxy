@@ -12,14 +12,14 @@ import (
 )
 
 type Screenshot struct {
-	cliCfg        *rfb.Option
+	cliCfg        *rfb.Options
 	targetCfg     rfb.TargetConfig
 	cliSession    *session.ClientSession // 链接到vnc服务端的会话
 	canvasSession *session.CanvasSession
 }
 
 func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
-	cliCfg := &rfb.Option{
+	cliCfg := &rfb.Options{
 		PixelFormat: rfb.PixelFormat32bit,
 		Messages:    messages.DefaultServerMessages,
 		Encodings:   encodings.DefaultEncodings,
@@ -45,7 +45,7 @@ func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
 }
 
 func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
-
+	var err error
 	timeout := 10 * time.Second
 	if that.targetCfg.Timeout > 0 {
 		timeout = that.targetCfg.Timeout
@@ -54,14 +54,10 @@ func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 	if len(that.targetCfg.Network) > 0 {
 		network = that.targetCfg.Network
 	}
-	clientConn, err := net.DialTimeout(network, that.targetCfg.Addr(), timeout)
-	if err != nil {
-		return nil, err
+	that.cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(clientConn, that.cliCfg)
-	if err != nil {
-		return nil, err
-	}
+	that.cliSession, err = session.NewClient(that.cliCfg)
 
 	that.cliSession.Run()
 	encS := []rfb.EncodingType{
