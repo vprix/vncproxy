@@ -5,9 +5,6 @@ import (
 	"github.com/gogf/gf/text/gstr"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
-	"github.com/vprix/vncproxy/rfb"
-	"github.com/vprix/vncproxy/vnc"
-	"io"
 	"os"
 )
 
@@ -116,10 +113,4 @@ func main() {
 		svr.AddSandBox(NewTcpSandBox(cfg))
 		svr.AddSandBox(NewWSSandBox(cfg))
 	})
-}
-
-func attachNewServerConn(conn io.ReadWriteCloser, svrCfg *rfb.Options, cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *vnc.Proxy {
-	p := vnc.NewVncProxy(svrCfg, cliCfg, targetCfg)
-	go p.Start(conn)
-	return p
 }

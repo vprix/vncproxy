@@ -5,6 +5,7 @@ import (
 	"github.com/gogf/gf/container/gmap"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
+	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
 )
@@ -30,55 +31,70 @@ type ServerSession struct {
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	swap    *gmap.Map
-	quitCh  chan struct{} // 退出
-	errorCh chan error
+	swap *gmap.Map
 }
 
 var _ rfb.ISession = new(ServerSession)
 
-func NewServerSession(options rfb.Options) (*ServerSession, error) {
-	enc := options.Encodings
-	if len(options.Encodings) == 0 {
-		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+func NewServerSession(opts ...rfb.Option) *ServerSession {
+	sess := &ServerSession{
+		swap: gmap.New(true),
+	}
+	for _, o := range opts {
+		o(&sess.options)
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(options.PixelFormat)
+	desktop.SetPixelFormat(sess.options.PixelFormat)
+	sess.desktop = desktop
+	if sess.options.QuitCh == nil {
+		sess.options.QuitCh = make(chan struct{})
+	}
+	if sess.options.ErrorCh == nil {
+		sess.options.ErrorCh = make(chan error, 32)
+	}
+	if sess.options.Input == nil {
+		sess.options.Input = make(chan rfb.Message)
+	}
+	if sess.options.Output == nil {
+		sess.options.Output = make(chan rfb.Message)
+	}
+	if len(sess.options.Messages) == 0 {
+		sess.options.Messages = messages.DefaultClientMessage
+	}
+	if len(sess.options.Encodings) == 0 {
+		sess.options.Encodings = encodings.DefaultEncodings
+	}
 
-	if options.QuitCh == nil {
-		options.QuitCh = make(chan struct{})
-	}
-	if options.ErrorCh == nil {
-		options.ErrorCh = make(chan error, 32)
-	}
-	c, err := options.GetConn()
-	if err != nil {
-		return nil, err
-	}
+	return sess
+}
 
-	return &ServerSession{
-		c:         c,
-		br:        bufio.NewReader(c),
-		bw:        bufio.NewWriter(c),
-		options:   options,
-		desktop:   desktop,
-		encodings: enc,
-		quitCh:    options.QuitCh,
-		errorCh:   options.ErrorCh,
-		swap:      gmap.New(true),
-	}, nil
+// Init 初始化参数
+func (that *ServerSession) Init(opts ...rfb.Option) error {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	return nil
 }
 
 func (that *ServerSession) Run() {
+	var err error
+	that.c, err = that.options.GetConn()
+	if err != nil {
+		that.options.ErrorCh <- err
+		return
+	}
+	that.br = bufio.NewReader(that.c)
+	that.bw = bufio.NewWriter(that.c)
+
 	if len(that.options.Handlers) == 0 {
 		that.options.Handlers = DefaultServerHandlers
 	}
 	for _, h := range that.options.Handlers {
-		if err := h.Handle(that); err != nil {
-			that.errorCh <- err
+		if err = h.Handle(that); err != nil {
+			that.options.ErrorCh <- err
 			err = that.Close()
 			if err != nil {
-				that.errorCh <- err
+				that.options.ErrorCh <- err
 			}
 			return
 		}
@@ -132,7 +148,7 @@ func (that *ServerSession) Flush() error {
 
 // Wait 等待会话处理完成
 func (that *ServerSession) Wait() {
-	<-that.quitCh
+	<-that.options.QuitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -168,9 +184,9 @@ func (that *ServerSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *ServerSession) Close() error {
-	if that.quitCh != nil {
-		close(that.quitCh)
-		that.quitCh = nil
+	if that.options.QuitCh != nil {
+		close(that.options.QuitCh)
+		that.options.QuitCh = nil
 	}
 	return that.c.Close()
 }
@@ -183,8 +199,4 @@ func (that *ServerSession) Swap() *gmap.Map {
 // Type session类型
 func (that *ServerSession) Type() rfb.SessionType {
 	return rfb.ServerSessionType
-}
-
-func (that *ServerSession) Messages() []rfb.Message {
-	return that.options.Messages
 }

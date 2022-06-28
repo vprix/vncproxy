@@ -47,6 +47,14 @@ func NewCanvasSession(options rfb.Options) *CanvasSession {
 	}
 }
 
+// Init 初始化参数
+func (that *CanvasSession) Init(opts ...rfb.Option) error {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	return nil
+}
+
 func (that *CanvasSession) Run() {
 	that.canvas = canvas.NewVncCanvas(int(that.desktop.Width()), int(that.desktop.Height()))
 	that.canvas.DrawCursor = that.options.DrawCursor
@@ -152,8 +160,4 @@ func (that *CanvasSession) Swap() *gmap.Map {
 // Type session类型
 func (that *CanvasSession) Type() rfb.SessionType {
 	return rfb.CanvasSessionType
-}
-
-func (that *CanvasSession) Messages() []rfb.Message {
-	return that.options.Messages
 }

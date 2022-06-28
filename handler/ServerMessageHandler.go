@@ -27,7 +27,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 		_ = session.Close()
 	}()
 	clientMessages := make(map[rfb.ClientMessageType]rfb.Message)
-	for _, m := range session.Messages() {
+	for _, m := range cfg.Messages {
 		clientMessages[rfb.ClientMessageType(m.Type())] = m
 	}
 	wg.Add(2)
@@ -41,7 +41,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 			select {
 			case <-quit: // 如果收到退出信号，则退出协程
 				return
-			case msg := <-cfg.Output:
+			case msg := <-cfg.Input:
 				// 收到proxy服务端消息，则转发写入到vnc客户端会话中。
 				if logger.IsDebug() {
 					logger.Debugf("[Proxy服务端->VNC客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(msg.Type()), msg.String())
@@ -97,7 +97,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 					logger.Debugf("[VNC客户端->Proxy服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg.String())
 				}
 
-				cfg.Input <- parsedMsg
+				cfg.Output <- parsedMsg
 			}
 		}
 	}()

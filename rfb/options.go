@@ -74,3 +74,20 @@ func OptGetConn(opt GetConn) Option {
 		options.GetConn = opt
 	}
 }
+
+func OptDesktopName(opt []byte) Option {
+	return func(options *Options) {
+		options.DesktopName = opt
+	}
+}
+
+func OptHeight(opt int) Option {
+	return func(options *Options) {
+		options.Height = uint16(opt)
+	}
+}
+func OptWidth(opt int) Option {
+	return func(options *Options) {
+		options.Width = uint16(opt)
+	}
+}

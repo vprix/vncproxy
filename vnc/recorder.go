@@ -11,7 +11,6 @@ import (
 
 type Recorder struct {
 	closed          chan struct{}
-	cliCfg          *rfb.Options
 	cliSession      *session.ClientSession // 链接到vnc服务端的会话
 	recorderSession *session.RecorderSession
 }
@@ -56,9 +55,9 @@ func (that *Recorder) Start() error {
 	var lastUpdate *gtime.Time
 	for {
 		select {
-		case msg := <-that.cliCfg.Output:
+		case msg := <-that.cliSession.Options().Output:
 			logger.Debugf("client message received.messageType:%d,message:%s", msg.Type(), msg)
-		case msg := <-that.cliCfg.Input:
+		case msg := <-that.cliSession.Options().Input:
 			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.recorderSession)
 				if err != nil {
@@ -98,5 +97,5 @@ func (that *Recorder) Close() {
 }
 
 func (that *Recorder) Error() <-chan error {
-	return that.cliCfg.ErrorCh
+	return that.cliSession.Options().ErrorCh
 }

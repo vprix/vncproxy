@@ -12,6 +12,7 @@ type ISession interface {
 	Run()
 	Flush() error // 清空缓冲区
 	Wait()        // 等待会话处理结束
+	Init(...Option) error
 	Options() Options
 	Desktop() *Desktop
 	ProtocolVersion() string                   // 获取当前的rfb协议
@@ -23,11 +24,6 @@ type ISession interface {
 	GetEncoding(EncodingType) IEncoding
 	Swap() *gmap.Map // 获取会话的自定义存储数据
 	Type() SessionType
-
-	// Messages 逐步完善session的方法
-
-	// Messages 当前session支持的Messages
-	Messages() []Message
 }
 
 type SessionType uint8

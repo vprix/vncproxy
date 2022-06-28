@@ -6,10 +6,13 @@ import (
 	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/drpc"
 	"github.com/osgochina/dmicro/easyservice"
-	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
+	"github.com/vprix/vncproxy/session"
+	"github.com/vprix/vncproxy/vnc"
+	"io"
 	"net"
+	"time"
 )
 
 // TcpSandBox  Tcp的服务
@@ -50,18 +53,11 @@ func (that *TcpSandBox) Setup() error {
 		glog.Fatalf("Error listen. %v", err)
 	}
 	fmt.Printf("Tcp proxy started! listening %s . vnc server %s:%d\n", that.lis.Addr().String(), that.cfg.GetString("vncHost"), that.cfg.GetInt("vncPort"))
-	svrCfg := &rfb.Options{
-		Encodings:   encodings.DefaultEncodings,
-		DesktopName: []byte("Vprix VNC Proxy"),
-		Width:       1024,
-		Height:      768,
-		SecurityHandlers: []rfb.ISecurityHandler{
-			&security.ServerAuthNone{},
-		},
-		//DisableMessageType: []rfb.ServerMessageType{rfb.ServerCutText},
+	securityHandlers := []rfb.ISecurityHandler{
+		&security.ServerAuthNone{},
 	}
 	if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-		svrCfg.SecurityHandlers = append(svrCfg.SecurityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+		securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
 	}
 	targetCfg := rfb.TargetConfig{
 		Host:     that.cfg.GetString("vncHost"),
@@ -78,7 +74,25 @@ func (that *TcpSandBox) Setup() error {
 			}
 			return err
 		}
-		p := attachNewServerConn(conn, svrCfg, nil, targetCfg)
+		svrSess := session.NewServerSession(
+			rfb.OptDesktopName([]byte("Vprix VNC Proxy")),
+			rfb.OptHeight(768),
+			rfb.OptWidth(1024),
+			rfb.OptSecurityHandlers(securityHandlers...),
+			rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+				return conn, nil
+			}),
+		)
+		timeout := 10 * time.Second
+		network := "tcp"
+		cliSess := session.NewClient(
+			rfb.OptSecurityHandlers([]rfb.ISecurityHandler{&security.ClientAuthVNC{Password: targetCfg.Password}}...),
+			rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+				return net.DialTimeout(network, targetCfg.Addr(), timeout)
+			}),
+		)
+		p := vnc.NewVncProxy(svrSess, cliSess)
+		go p.Start()
 		go func() {
 			for {
 				err = <-p.Error()

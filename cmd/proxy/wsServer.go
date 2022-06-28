@@ -5,7 +5,6 @@ import (
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/os/gcfg"
-	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
@@ -60,16 +59,16 @@ func (that *WSSandBox) Setup() error {
 			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
 				svrCfg.SecurityHandlers = append(svrCfg.SecurityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
 			}
-			targetCfg := rfb.TargetConfig{
-				Host:     that.cfg.GetString("vncHost"),
-				Port:     that.cfg.GetInt("vncPort"),
-				Password: that.cfg.GetBytes("vncPassword"),
-			}
-			p := attachNewServerConn(conn, svrCfg, nil, targetCfg)
-			for {
-				err := <-p.Error()
-				glog.Error(err)
-			}
+			//targetCfg := rfb.TargetConfig{
+			//	Host:     that.cfg.GetString("vncHost"),
+			//	Port:     that.cfg.GetInt("vncPort"),
+			//	Password: that.cfg.GetBytes("vncPassword"),
+			//}
+			//p := attachNewServerConn(conn, svrCfg, nil, targetCfg)
+			//for {
+			//	err := <-p.Error()
+			//	glog.Error(err)
+			//}
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})

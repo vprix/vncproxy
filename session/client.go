@@ -31,7 +31,6 @@ type ClientSession struct {
 	options         rfb.Options          // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
-	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
 	swap *gmap.Map
@@ -41,26 +40,46 @@ var _ rfb.ISession = new(ClientSession)
 
 // NewClient 创建客户端会话
 func NewClient(opts ...rfb.Option) *ClientSession {
-	cliSess := &ClientSession{
+	sess := &ClientSession{
 		swap: gmap.New(true),
 	}
 	for _, o := range opts {
-		o(&cliSess.options)
-	}
-	if len(cliSess.options.Encodings) == 0 {
-		cliSess.options.Encodings = []rfb.IEncoding{&encodings.RawEncoding{}}
-	}
-	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(cliSess.options.PixelFormat)
-	cliSess.desktop = desktop
-	if cliSess.options.QuitCh == nil {
-		cliSess.options.QuitCh = make(chan struct{})
-	}
-	if cliSess.options.ErrorCh == nil {
-		cliSess.options.ErrorCh = make(chan error, 32)
+		o(&sess.options)
 	}
 
-	return cliSess
+	desktop := &rfb.Desktop{}
+	desktop.SetPixelFormat(sess.options.PixelFormat)
+	sess.desktop = desktop
+	if sess.options.QuitCh == nil {
+		sess.options.QuitCh = make(chan struct{})
+	}
+	if sess.options.ErrorCh == nil {
+		sess.options.ErrorCh = make(chan error, 32)
+	}
+	if sess.options.Input == nil {
+		sess.options.Input = make(chan rfb.Message)
+	}
+	if sess.options.Output == nil {
+		sess.options.Output = make(chan rfb.Message)
+	}
+	if len(sess.options.Handlers) == 0 {
+		sess.options.Handlers = DefaultClientHandlers
+	}
+	if len(sess.options.Messages) == 0 {
+		sess.options.Messages = messages.DefaultServerMessages
+	}
+	if len(sess.options.Encodings) == 0 {
+		sess.options.Encodings = encodings.DefaultEncodings
+	}
+	return sess
+}
+
+// Init 初始化参数
+func (that *ClientSession) Init(opts ...rfb.Option) error {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	return nil
 }
 
 func (that *ClientSession) Run() {
@@ -115,7 +134,7 @@ func (that *ClientSession) Desktop() *rfb.Desktop {
 
 // Encodings 获取当前支持的编码格式
 func (that *ClientSession) Encodings() []rfb.IEncoding {
-	return that.encodings
+	return that.options.Encodings
 }
 
 // SetEncodings 设置编码格式
@@ -153,7 +172,7 @@ func (that *ClientSession) SetSecurityHandler(securityHandler rfb.ISecurityHandl
 
 // GetEncoding 获取编码对象
 func (that *ClientSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
-	for _, enc := range that.encodings {
+	for _, enc := range that.options.Encodings {
 		if enc.Type() == typ && enc.Supported(that) {
 			return enc.Clone()
 		}
@@ -187,8 +206,4 @@ func (that *ClientSession) Swap() *gmap.Map {
 // Type session类型
 func (that *ClientSession) Type() rfb.SessionType {
 	return rfb.ClientSessionType
-}
-
-func (that *ClientSession) Messages() []rfb.Message {
-	return that.options.Messages
 }

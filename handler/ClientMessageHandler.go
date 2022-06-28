@@ -24,7 +24,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 
 	// proxy客户端支持的消息类型
 	serverMessages := make(map[rfb.MessageType]rfb.Message)
-	for _, m := range session.Messages() {
+	for _, m := range cfg.Messages {
 		serverMessages[m.Type()] = m
 	}
 
@@ -32,7 +32,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	go func() {
 		for {
 			select {
-			case msg := <-cfg.Output:
+			case msg := <-cfg.Input:
 				if logger.IsDebug() {
 					logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
 				}
@@ -74,7 +74,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 				if logger.IsDebug() {
 					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg)
 				}
-				cfg.Input <- parsedMsg
+				cfg.Output <- parsedMsg
 			}
 		}
 	}()

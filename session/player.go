@@ -47,6 +47,14 @@ func NewPlayerSession(options rfb.Options) *PlayerSession {
 	}
 }
 
+// Init 初始化参数
+func (that *PlayerSession) Init(opts ...rfb.Option) error {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	return nil
+}
+
 func (that *PlayerSession) Run() {
 	var err error
 	that.c, err = that.options.GetConn()
@@ -204,8 +212,4 @@ func (that *PlayerSession) Swap() *gmap.Map {
 }
 func (that *PlayerSession) Type() rfb.SessionType {
 	return rfb.PlayerSessionType
-}
-
-func (that *PlayerSession) Messages() []rfb.Message {
-	return that.options.Messages
 }

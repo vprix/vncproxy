@@ -67,12 +67,12 @@ func (that *Player) Start(conn io.ReadWriteCloser) error {
 		return conn, nil
 	}
 	go func() {
-		sess, err := session.NewServerSession(*that.rfbSvrCfg)
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-		sess.Run()
+		//sess, err := session.NewServerSession(*that.rfbSvrCfg)
+		//if err != nil {
+		//	logger.Error(err)
+		//	return
+		//}
+		//sess.Run()
 	}()
 
 	return nil
