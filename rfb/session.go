@@ -12,7 +12,7 @@ type ISession interface {
 	Run()
 	Flush() error // 清空缓冲区
 	Wait()        // 等待会话处理结束
-	Options() *Options
+	Options() Options
 	Desktop() *Desktop
 	ProtocolVersion() string                   // 获取当前的rfb协议
 	SetProtocolVersion(string)                 // 设置rfb协议

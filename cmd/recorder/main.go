@@ -14,7 +14,7 @@ USAGE
 	./recorder [start|stop|quit]  [OPTION]
 OPTION
 	--rbsFile       使用的rbs文件地址  必传
-    --vncHost       要连接的vnc服务端地址  必传
+	--vncHost       要连接的vnc服务端地址  必传
 	--vncPort       要连接的vnc服务端端口 必传
 	--vncPassword   要连接的vnc服务端密码 不传则使用auth none
 	--debug         是否开启debug 默认debug=false

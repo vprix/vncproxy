@@ -3,10 +3,19 @@ package main
 import (
 	"fmt"
 	"github.com/gogf/gf/os/gcfg"
+	"github.com/gogf/gf/os/gfile"
+	"github.com/gogf/gf/os/gtime"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
+	"github.com/vprix/vncproxy/encodings"
+	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
+	"github.com/vprix/vncproxy/security"
+	"github.com/vprix/vncproxy/session"
 	"github.com/vprix/vncproxy/vnc"
+	"io"
+	"net"
+	"os"
 	"time"
 )
 
@@ -41,16 +50,50 @@ func (that *RecorderSandBox) Name() string {
 }
 
 func (that *RecorderSandBox) Setup() error {
-	that.recorder = vnc.NewRecorder(that.cfg.GetString("rbsFile"),
-		nil,
-		rfb.TargetConfig{
-			Network:  "tcp",
-			Host:     that.cfg.GetString("vncHost"),
-			Port:     that.cfg.GetInt("vncPort"),
-			Password: that.cfg.GetBytes("vncPassword"),
-			Timeout:  10 * time.Second,
-		},
+	saveFilePath := that.cfg.GetString("rbsFile")
+	targetCfg := rfb.TargetConfig{
+		Network:  "tcp",
+		Host:     that.cfg.GetString("vncHost"),
+		Port:     that.cfg.GetInt("vncPort"),
+		Password: that.cfg.GetBytes("vncPassword"),
+		Timeout:  10 * time.Second,
+	}
+	var securityHandlers = []rfb.ISecurityHandler{
+		&security.ClientAuthNone{},
+	}
+	if len(targetCfg.Password) > 0 {
+		securityHandlers = []rfb.ISecurityHandler{
+			&security.ClientAuthVNC{Password: targetCfg.Password},
+		}
+	}
+	// 创建会话
+	recorderSess := session.NewRecorder(
+		rfb.OptEncodings(encodings.DefaultEncodings...),
+		rfb.OptMessages(messages.DefaultServerMessages...),
+		rfb.OptPixelFormat(rfb.PixelFormat32bit),
+		rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+			if gfile.Exists(saveFilePath) {
+				saveFilePath = fmt.Sprintf("%s%s%s_%d%s",
+					gfile.Dir(saveFilePath),
+					gfile.Separator,
+					gfile.Name(gfile.Basename(saveFilePath)),
+					gtime.Now().Unix(),
+					gfile.Ext(gfile.Basename(saveFilePath)),
+				)
+			}
+			return gfile.OpenFile(saveFilePath, os.O_RDWR|os.O_CREATE, 0644)
+		}),
 	)
+	cliSession := session.NewClient(
+		rfb.OptEncodings(encodings.DefaultEncodings...),
+		rfb.OptMessages(messages.DefaultServerMessages...),
+		rfb.OptPixelFormat(rfb.PixelFormat32bit),
+		rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+			return net.DialTimeout(targetCfg.Network, targetCfg.Addr(), targetCfg.Timeout)
+		}),
+		rfb.OptSecurityHandlers(securityHandlers...),
+	)
+	that.recorder = vnc.NewRecorder(recorderSess, cliSession)
 	go func() {
 		err := that.recorder.Start()
 		if err != nil {

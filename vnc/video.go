@@ -49,7 +49,7 @@ func NewVideo(cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *Video {
 		}
 	}
 	recorder := &Video{
-		canvasSession: session.NewCanvasSession(cliCfg),
+		canvasSession: session.NewCanvasSession(*cliCfg),
 		targetCfg:     targetCfg,
 		cliCfg:        cliCfg,
 	}
@@ -66,10 +66,10 @@ func (that *Video) Start() error {
 	if len(that.targetCfg.Network) > 0 {
 		network = that.targetCfg.Network
 	}
-	that.cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+	that.cliCfg.GetConn = func() (io.ReadWriteCloser, error) {
 		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(that.cliCfg)
+	that.cliSession = session.NewClient()
 
 	that.cliSession.Run()
 	encS := []rfb.EncodingType{

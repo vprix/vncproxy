@@ -2,93 +2,30 @@ package vnc
 
 import (
 	"encoding/binary"
-	"fmt"
-	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/os/gtime"
 	"github.com/osgochina/dmicro/logger"
-	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
-	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
-	"io"
-	"net"
-	"os"
-	"time"
 )
 
 type Recorder struct {
 	closed          chan struct{}
 	cliCfg          *rfb.Options
-	targetCfg       rfb.TargetConfig
 	cliSession      *session.ClientSession // 链接到vnc服务端的会话
 	recorderSession *session.RecorderSession
 }
 
-func NewRecorder(saveFilePath string, cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *Recorder {
-	if cliCfg == nil {
-		cliCfg = &rfb.Options{
-			PixelFormat: rfb.PixelFormat32bit,
-			Messages:    messages.DefaultServerMessages,
-			Encodings:   encodings.DefaultEncodings,
-			Output:      make(chan rfb.Message),
-			Input:       make(chan rfb.Message),
-			ErrorCh:     make(chan error),
-		}
-	}
-	if cliCfg.Output == nil {
-		cliCfg.Output = make(chan rfb.Message)
-	}
-	if cliCfg.Input == nil {
-		cliCfg.Input = make(chan rfb.Message)
-	}
-	if cliCfg.ErrorCh == nil {
-		cliCfg.ErrorCh = make(chan error)
-	}
-	if len(targetCfg.Password) > 0 {
-		cliCfg.SecurityHandlers = []rfb.ISecurityHandler{
-			&security.ClientAuthVNC{Password: targetCfg.Password},
-		}
-	} else {
-		cliCfg.SecurityHandlers = []rfb.ISecurityHandler{
-			&security.ClientAuthNone{},
-		}
-	}
-	cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
-		if gfile.Exists(saveFilePath) {
-			saveFilePath = fmt.Sprintf("%s%s%s_%d%s",
-				gfile.Dir(saveFilePath),
-				gfile.Separator,
-				gfile.Name(gfile.Basename(saveFilePath)),
-				gtime.Now().Unix(),
-				gfile.Ext(gfile.Basename(saveFilePath)),
-			)
-		}
-		return gfile.OpenFile(saveFilePath, os.O_RDWR|os.O_CREATE, 0644)
-	}
+func NewRecorder(recorderSess *session.RecorderSession, cliSession *session.ClientSession) *Recorder {
 	recorder := &Recorder{
-		recorderSession: session.NewRecorder(cliCfg),
-		targetCfg:       targetCfg,
-		cliCfg:          cliCfg,
+		recorderSession: recorderSess,
+		cliSession:      cliSession,
 	}
 	return recorder
 }
 
 func (that *Recorder) Start() error {
 	var err error
-	timeout := 10 * time.Second
-	if that.targetCfg.Timeout > 0 {
-		timeout = that.targetCfg.Timeout
-	}
-	network := "tcp"
-	if len(that.targetCfg.Network) > 0 {
-		network = that.targetCfg.Network
-	}
-	that.cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
-		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
-	}
-	that.cliSession, err = session.NewClient(that.cliCfg)
-
 	that.cliSession.Run()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,

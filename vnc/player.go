@@ -2,8 +2,6 @@ package vnc
 
 import (
 	"encoding/binary"
-	"fmt"
-	"github.com/gogf/gf/os/gfile"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
@@ -12,7 +10,6 @@ import (
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
 	"io"
-	"os"
 	"time"
 )
 
@@ -38,18 +35,18 @@ func NewPlayer(filePath string, svrCfg *rfb.Options) *Player {
 	play := &Player{
 		closed:    make(chan struct{}),
 		rfbSvrCfg: svrCfg,
-		playerSession: session.NewPlayerSession(
-			&rfb.Options{
-				ErrorCh:   svrCfg.ErrorCh,
-				Encodings: encodings.DefaultEncodings,
-				CreateConn: func() (io.ReadWriteCloser, error) {
-					if !gfile.Exists(filePath) {
-						return nil, fmt.Errorf("要保存的文件[%s]不存在", filePath)
-					}
-					return gfile.OpenFile(filePath, os.O_RDONLY, 0644)
-				},
-			},
-		),
+		//playerSession: session.NewPlayerSession(
+		//	&rfb.Options{
+		//		ErrorCh:   svrCfg.ErrorCh,
+		//		Encodings: encodings.DefaultEncodings,
+		//		GetConn: func() (io.ReadWriteCloser, error) {
+		//			if !gfile.Exists(filePath) {
+		//				return nil, fmt.Errorf("要保存的文件[%s]不存在", filePath)
+		//			}
+		//			return gfile.OpenFile(filePath, os.O_RDONLY, 0644)
+		//		},
+		//	},
+		//),
 	}
 
 	return play
@@ -66,11 +63,11 @@ func (that *Player) Start(conn io.ReadWriteCloser) error {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	that.rfbSvrCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+	that.rfbSvrCfg.GetConn = func() (io.ReadWriteCloser, error) {
 		return conn, nil
 	}
 	go func() {
-		sess, err := session.NewServerSession(that.rfbSvrCfg)
+		sess, err := session.NewServerSession(*that.rfbSvrCfg)
 		if err != nil {
 			logger.Error(err)
 			return

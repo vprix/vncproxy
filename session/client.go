@@ -10,7 +10,6 @@ import (
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
-	"net"
 )
 
 var (
@@ -25,57 +24,55 @@ var (
 
 // ClientSession proxy 客户端
 type ClientSession struct {
-	c  net.Conn // 网络链接
+	c  io.ReadWriteCloser // 网络链接
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	options         *rfb.Options         // 客户端配置信息
+	options         rfb.Options          // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	swap    *gmap.Map
-	quitCh  chan struct{} // 退出
-	errorCh chan error
+	swap *gmap.Map
 }
 
 var _ rfb.ISession = new(ClientSession)
 
 // NewClient 创建客户端会话
-func NewClient(options *rfb.Options) (*ClientSession, error) {
-	enc := options.Encodings
-	if len(options.Encodings) == 0 {
-		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+func NewClient(opts ...rfb.Option) *ClientSession {
+	cliSess := &ClientSession{
+		swap: gmap.New(true),
+	}
+	for _, o := range opts {
+		o(&cliSess.options)
+	}
+	if len(cliSess.options.Encodings) == 0 {
+		cliSess.options.Encodings = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(options.PixelFormat)
-
-	if options.QuitCh == nil {
-		options.QuitCh = make(chan struct{})
+	desktop.SetPixelFormat(cliSess.options.PixelFormat)
+	cliSess.desktop = desktop
+	if cliSess.options.QuitCh == nil {
+		cliSess.options.QuitCh = make(chan struct{})
 	}
-	if options.ErrorCh == nil {
-		options.ErrorCh = make(chan error, 32)
-	}
-	c, err := options.CreateConn()
-	if err != nil {
-		return nil, err
+	if cliSess.options.ErrorCh == nil {
+		cliSess.options.ErrorCh = make(chan error, 32)
 	}
 
-	return &ClientSession{
-		c:         c.(net.Conn),
-		br:        bufio.NewReader(c),
-		bw:        bufio.NewWriter(c),
-		options:   options,
-		desktop:   desktop,
-		encodings: enc,
-		quitCh:    options.QuitCh,
-		errorCh:   options.ErrorCh,
-		swap:      gmap.New(true),
-	}, nil
+	return cliSess
 }
 
 func (that *ClientSession) Run() {
+	var err error
+	that.c, err = that.options.GetConn()
+	if err != nil {
+		that.options.ErrorCh <- err
+		return
+	}
+	that.br = bufio.NewReader(that.c)
+	that.bw = bufio.NewWriter(that.c)
+
 	if len(that.options.Handlers) == 0 {
 		that.options.Handlers = DefaultClientHandlers
 	}
@@ -97,7 +94,7 @@ func (that *ClientSession) Conn() io.ReadWriteCloser {
 }
 
 // Options 获取配置信息
-func (that *ClientSession) Options() *rfb.Options {
+func (that *ClientSession) Options() rfb.Options {
 	return that.options
 }
 
@@ -140,7 +137,7 @@ func (that *ClientSession) Flush() error {
 
 // Wait 等待会话处理完成
 func (that *ClientSession) Wait() {
-	<-that.quitCh
+	<-that.options.QuitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -176,8 +173,8 @@ func (that *ClientSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *ClientSession) Close() error {
-	if that.quitCh != nil {
-		close(that.quitCh)
+	if that.options.QuitCh != nil {
+		close(that.options.QuitCh)
 	}
 	return that.c.Close()
 }

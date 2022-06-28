@@ -37,7 +37,7 @@ func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
 		}
 	}
 	recorder := &Screenshot{
-		canvasSession: session.NewCanvasSession(cliCfg),
+		canvasSession: session.NewCanvasSession(*cliCfg),
 		targetCfg:     targetCfg,
 		cliCfg:        cliCfg,
 	}
@@ -54,10 +54,10 @@ func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 	if len(that.targetCfg.Network) > 0 {
 		network = that.targetCfg.Network
 	}
-	that.cliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+	that.cliCfg.GetConn = func() (io.ReadWriteCloser, error) {
 		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(that.cliCfg)
+	that.cliSession = session.NewClient()
 
 	that.cliSession.Run()
 	encS := []rfb.EncodingType{

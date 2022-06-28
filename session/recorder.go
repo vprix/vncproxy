@@ -15,10 +15,9 @@ type RecorderSession struct {
 	c  io.ReadWriteCloser
 	bw *bufio.Writer
 
-	options         *rfb.Options         // 客户端配置信息
+	opts            rfb.Options          // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
-	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
 	swap    *gmap.Map
@@ -29,33 +28,31 @@ type RecorderSession struct {
 var _ rfb.ISession = new(RecorderSession)
 
 // NewRecorder 创建客户端会话
-func NewRecorder(options *rfb.Options) *RecorderSession {
-	enc := options.Encodings
-	if len(options.Encodings) == 0 {
-		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+func NewRecorder(opts ...rfb.Option) *RecorderSession {
+	recorder := &RecorderSession{
+		swap: gmap.New(true),
+	}
+	for _, o := range opts {
+		o(&recorder.opts)
+	}
+	if len(recorder.opts.Encodings) == 0 {
+		recorder.opts.Encodings = []rfb.IEncoding{&encodings.RawEncoding{}}
 	}
 	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(options.PixelFormat)
-
-	if options.QuitCh == nil {
-		options.QuitCh = make(chan struct{})
+	desktop.SetPixelFormat(recorder.opts.PixelFormat)
+	recorder.desktop = desktop
+	if recorder.opts.QuitCh == nil {
+		recorder.opts.QuitCh = make(chan struct{})
 	}
-	if options.ErrorCh == nil {
-		options.ErrorCh = make(chan error, 32)
+	if recorder.opts.ErrorCh == nil {
+		recorder.opts.ErrorCh = make(chan error, 32)
 	}
-	return &RecorderSession{
-		options:   options,
-		encodings: enc,
-		desktop:   desktop,
-		quitCh:    options.QuitCh,
-		errorCh:   options.ErrorCh,
-		swap:      gmap.New(true),
-	}
+	return recorder
 }
 
 func (that *RecorderSession) Run() {
 	var err error
-	that.c, err = that.options.CreateConn()
+	that.c, err = that.opts.GetConn()
 	if err != nil {
 		that.errorCh <- err
 		return
@@ -117,8 +114,8 @@ func (that *RecorderSession) Conn() io.ReadWriteCloser {
 }
 
 // Options 获取配置信息
-func (that *RecorderSession) Options() *rfb.Options {
-	return that.options
+func (that *RecorderSession) Options() rfb.Options {
+	return that.opts
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -138,7 +135,7 @@ func (that *RecorderSession) Desktop() *rfb.Desktop {
 
 // Encodings 获取当前支持的编码格式
 func (that *RecorderSession) Encodings() []rfb.IEncoding {
-	return that.encodings
+	return that.opts.Encodings
 }
 
 // SetEncodings 设置编码格式
@@ -167,7 +164,7 @@ func (that *RecorderSession) SetSecurityHandler(securityHandler rfb.ISecurityHan
 
 // GetEncoding 通过编码类型判断是否支持编码对象
 func (that *RecorderSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
-	for _, enc := range that.encodings {
+	for _, enc := range that.opts.Encodings {
 		if enc.Type() == typ && enc.Supported(that) {
 			return enc.Clone()
 		}
@@ -205,5 +202,5 @@ func (that *RecorderSession) Type() rfb.SessionType {
 }
 
 func (that *RecorderSession) Messages() []rfb.Message {
-	return that.options.Messages
+	return that.opts.Messages
 }

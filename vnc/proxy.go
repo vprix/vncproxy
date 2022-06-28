@@ -87,11 +87,11 @@ func (that *Proxy) Start(conn io.ReadWriteCloser) {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}
-	that.rfbSvrCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+	that.rfbSvrCfg.GetConn = func() (io.ReadWriteCloser, error) {
 		return conn, nil
 	}
 	go func() {
-		sess, err := session.NewServerSession(that.rfbSvrCfg)
+		sess, err := session.NewServerSession(*that.rfbSvrCfg)
 		if err != nil {
 			logger.Error(err)
 			return
@@ -177,10 +177,10 @@ func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 		network = that.targetConfig.Network
 	}
 
-	that.rfbCliCfg.CreateConn = func() (io.ReadWriteCloser, error) {
+	that.rfbCliCfg.GetConn = func() (io.ReadWriteCloser, error) {
 		return net.DialTimeout(network, that.targetConfig.Addr(), timeout)
 	}
-	that.cliSession, err = session.NewClient(that.rfbCliCfg)
+	that.cliSession = session.NewClient()
 	if err != nil {
 		return err
 	}

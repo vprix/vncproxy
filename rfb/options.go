@@ -3,7 +3,7 @@ package rfb
 import "io"
 
 type Option func(*Options)
-type CreateConn func() (io.ReadWriteCloser, error)
+type GetConn func() (io.ReadWriteCloser, error)
 
 // Options 配置信息
 type Options struct {
@@ -30,26 +30,47 @@ type Options struct {
 	Exclusive  bool // 是否独占
 
 	// 生成连接的方法
-	CreateConn CreateConn
+	GetConn GetConn
 }
 
-// Handlers 设置流程处理程序
-func Handlers(opt ...IHandler) Option {
+// OptHandlers 设置流程处理程序
+func OptHandlers(opt ...IHandler) Option {
 	return func(options *Options) {
 		options.Handlers = append(options.Handlers, opt...)
 	}
 }
 
-// SecurityHandlers 设置权限认证处理程序
-func SecurityHandlers(opt ...ISecurityHandler) Option {
+// OptSecurityHandlers 设置权限认证处理程序
+func OptSecurityHandlers(opt ...ISecurityHandler) Option {
 	return func(options *Options) {
 		options.SecurityHandlers = append(options.SecurityHandlers, opt...)
 	}
 }
 
-// Encodings 设置支持的编码格式
-func Encodings(opt ...IEncoding) Option {
+// OptEncodings 设置支持的编码格式
+func OptEncodings(opt ...IEncoding) Option {
 	return func(options *Options) {
 		options.Encodings = append(options.Encodings, opt...)
+	}
+}
+
+// OptMessages 设置支持的消息类型
+func OptMessages(opt ...Message) Option {
+	return func(options *Options) {
+		options.Messages = append(options.Messages, opt...)
+	}
+}
+
+// OptPixelFormat 设置像素格式
+func OptPixelFormat(opt PixelFormat) Option {
+	return func(options *Options) {
+		options.PixelFormat = opt
+	}
+}
+
+// OptGetConn 设置生成连接方法
+func OptGetConn(opt GetConn) Option {
+	return func(options *Options) {
+		options.GetConn = opt
 	}
 }

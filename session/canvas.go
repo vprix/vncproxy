@@ -12,7 +12,7 @@ import (
 type CanvasSession struct {
 	canvas *canvas.VncCanvas
 
-	options         *rfb.Options         // 客户端配置信息
+	options         rfb.Options          // 客户端配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -24,7 +24,7 @@ type CanvasSession struct {
 }
 
 // NewCanvasSession 创建客户端会话
-func NewCanvasSession(options *rfb.Options) *CanvasSession {
+func NewCanvasSession(options rfb.Options) *CanvasSession {
 	enc := options.Encodings
 	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
@@ -58,7 +58,7 @@ func (that *CanvasSession) Conn() io.ReadWriteCloser {
 }
 
 // Options 获取配置信息
-func (that *CanvasSession) Options() *rfb.Options {
+func (that *CanvasSession) Options() rfb.Options {
 	return that.options
 }
 

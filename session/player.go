@@ -14,7 +14,7 @@ type PlayerSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	options         *rfb.Options         // 配置信息
+	options         rfb.Options          // 配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -25,7 +25,7 @@ type PlayerSession struct {
 	errorCh chan error
 }
 
-func NewPlayerSession(options *rfb.Options) *PlayerSession {
+func NewPlayerSession(options rfb.Options) *PlayerSession {
 	enc := options.Encodings
 	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
@@ -49,7 +49,7 @@ func NewPlayerSession(options *rfb.Options) *PlayerSession {
 
 func (that *PlayerSession) Run() {
 	var err error
-	that.c, err = that.options.CreateConn()
+	that.c, err = that.options.GetConn()
 	if err != nil {
 		that.errorCh <- err
 		return
@@ -122,7 +122,7 @@ func (that *PlayerSession) Conn() io.ReadWriteCloser {
 }
 
 // Options 获取配置信息
-func (that *PlayerSession) Options() *rfb.Options {
+func (that *PlayerSession) Options() rfb.Options {
 	return that.options
 }
 

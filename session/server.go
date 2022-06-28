@@ -24,7 +24,7 @@ type ServerSession struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	options         *rfb.Options         // 配置信息
+	options         rfb.Options          // 配置信息
 	protocol        string               //协议版本
 	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
@@ -37,7 +37,7 @@ type ServerSession struct {
 
 var _ rfb.ISession = new(ServerSession)
 
-func NewServerSession(options *rfb.Options) (*ServerSession, error) {
+func NewServerSession(options rfb.Options) (*ServerSession, error) {
 	enc := options.Encodings
 	if len(options.Encodings) == 0 {
 		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
@@ -51,7 +51,7 @@ func NewServerSession(options *rfb.Options) (*ServerSession, error) {
 	if options.ErrorCh == nil {
 		options.ErrorCh = make(chan error, 32)
 	}
-	c, err := options.CreateConn()
+	c, err := options.GetConn()
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (that *ServerSession) Run() {
 func (that *ServerSession) Conn() io.ReadWriteCloser {
 	return that.c
 }
-func (that *ServerSession) Options() *rfb.Options {
+func (that *ServerSession) Options() rfb.Options {
 	return that.options
 }
 
