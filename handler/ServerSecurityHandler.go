@@ -74,7 +74,8 @@ func (*ServerSecurityHandler) Handle(session rfb.ISession) error {
 		if err := session.Flush(); err != nil {
 			return err
 		}
-		return session.SetSecurityHandler(sType)
+		session.SetSecurityHandler(sType)
+		return nil
 	}
 
 	if session.ProtocolVersion() == rfb.ProtoVersion38 {

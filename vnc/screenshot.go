@@ -1,65 +1,51 @@
 package vnc
 
 import (
-	"github.com/vprix/vncproxy/encodings"
+	"fmt"
+	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
+	"golang.org/x/net/context"
 	"io"
 	"net"
 	"time"
 )
 
 type Screenshot struct {
-	cliCfg        *rfb.Options
-	targetCfg     rfb.TargetConfig
 	cliSession    *session.ClientSession // 链接到vnc服务端的会话
 	canvasSession *session.CanvasSession
+	timeout       time.Duration
 }
 
 func NewScreenshot(targetCfg rfb.TargetConfig) *Screenshot {
-	cliCfg := &rfb.Options{
-		PixelFormat: rfb.PixelFormat32bit,
-		Messages:    messages.DefaultServerMessages,
-		Encodings:   encodings.DefaultEncodings,
-		Output:      make(chan rfb.Message),
-		Input:       make(chan rfb.Message),
-		ErrorCh:     make(chan error),
+	securityHandlers := []rfb.ISecurityHandler{
+		&security.ClientAuthNone{},
 	}
 	if len(targetCfg.Password) > 0 {
-		cliCfg.SecurityHandlers = []rfb.ISecurityHandler{
+		securityHandlers = []rfb.ISecurityHandler{
 			&security.ClientAuthVNC{Password: targetCfg.Password},
 		}
-	} else {
-		cliCfg.SecurityHandlers = []rfb.ISecurityHandler{
-			&security.ClientAuthNone{},
-		}
 	}
+	canvasSession := session.NewCanvasSession()
+	cliSession := session.NewClient(
+		rfb.OptSecurityHandlers(securityHandlers...),
+		rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+			return net.DialTimeout(targetCfg.GetNetwork(), targetCfg.Addr(), targetCfg.GetTimeout())
+		}),
+	)
 	recorder := &Screenshot{
-		canvasSession: session.NewCanvasSession(*cliCfg),
-		targetCfg:     targetCfg,
-		cliCfg:        cliCfg,
+		canvasSession: canvasSession,
+		cliSession:    cliSession,
+		timeout:       targetCfg.GetTimeout(),
 	}
 	return recorder
 }
 
-func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
+func (that *Screenshot) GetImage() (io.ReadWriteCloser, error) {
 	var err error
-	timeout := 10 * time.Second
-	if that.targetCfg.Timeout > 0 {
-		timeout = that.targetCfg.Timeout
-	}
-	network := "tcp"
-	if len(that.targetCfg.Network) > 0 {
-		network = that.targetCfg.Network
-	}
-	that.cliCfg.GetConn = func() (io.ReadWriteCloser, error) {
-		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
-	}
-	that.cliSession = session.NewClient()
-
-	that.cliSession.Run()
+	that.cliSession.Start()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,
 		rfb.EncPointerPosPseudo,
@@ -76,22 +62,26 @@ func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 	}
 	// 设置参数信息
 	that.canvasSession.SetProtocolVersion(that.cliSession.ProtocolVersion())
-	that.canvasSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
-	that.canvasSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
-	that.canvasSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
-	that.canvasSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
-	that.canvasSession.Run()
+	that.canvasSession.SetWidth(that.cliSession.Options().Width)
+	that.canvasSession.SetHeight(that.cliSession.Options().Height)
+	that.canvasSession.SetPixelFormat(that.cliSession.Options().PixelFormat)
+	that.canvasSession.SetDesktopName(that.cliSession.Options().DesktopName)
+	that.canvasSession.Start()
 	defer func() {
 		_ = that.canvasSession.Close()
 	}()
-	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
+	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Options().Width, Height: that.cliSession.Options().Height}
 	err = reqMsg.Write(that.cliSession)
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), that.timeout)
+	defer cancel()
 	for {
 		select {
-		case msg := <-that.cliCfg.Input:
+		case <-ctx.Done():
+			return nil, fmt.Errorf("获取截图超时")
+		case msg := <-that.cliSession.Options().Output:
 			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.canvasSession)
 				if err != nil {
@@ -99,6 +89,9 @@ func (that *Screenshot) Start() (io.ReadWriteCloser, error) {
 				}
 				err = that.canvasSession.Flush()
 				return that.canvasSession.Conn(), err
+			}
+			if logger.IsDebug() {
+				logger.Debugf("获取到来自vnc服务端的消息%v", msg)
 			}
 		}
 	}

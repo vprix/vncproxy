@@ -6,10 +6,15 @@ import (
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/os/gcfg"
 	"github.com/osgochina/dmicro/easyservice"
-	"github.com/vprix/vncproxy/encodings"
+	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
+	"github.com/vprix/vncproxy/session"
+	"github.com/vprix/vncproxy/vnc"
 	"golang.org/x/net/websocket"
+	"io"
+	"net"
+	"time"
 )
 
 // WSSandBox  Tcp的服务
@@ -46,29 +51,41 @@ func (that *WSSandBox) Setup() error {
 	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
-			svrCfg := &rfb.Options{
-				Encodings:   encodings.DefaultEncodings,
-				DesktopName: []byte("Vprix VNC Proxy"),
-				Width:       1024,
-				Height:      768,
-				SecurityHandlers: []rfb.ISecurityHandler{
-					&security.ServerAuthNone{},
-				},
-				//DisableMessageType: []rfb.ServerMessageType{rfb.ServerCutText},
+
+			securityHandlers := []rfb.ISecurityHandler{
+				&security.ServerAuthNone{},
 			}
 			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-				svrCfg.SecurityHandlers = append(svrCfg.SecurityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+				securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
 			}
-			//targetCfg := rfb.TargetConfig{
-			//	Host:     that.cfg.GetString("vncHost"),
-			//	Port:     that.cfg.GetInt("vncPort"),
-			//	Password: that.cfg.GetBytes("vncPassword"),
-			//}
-			//p := attachNewServerConn(conn, svrCfg, nil, targetCfg)
-			//for {
-			//	err := <-p.Error()
-			//	glog.Error(err)
-			//}
+			svrSess := session.NewServerSession(
+				rfb.OptDesktopName([]byte("Vprix VNC Proxy")),
+				rfb.OptHeight(768),
+				rfb.OptWidth(1024),
+				rfb.OptSecurityHandlers(securityHandlers...),
+				rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+					return conn, nil
+				}),
+			)
+			targetCfg := rfb.TargetConfig{
+				Host:     that.cfg.GetString("vncHost"),
+				Port:     that.cfg.GetInt("vncPort"),
+				Password: that.cfg.GetBytes("vncPassword"),
+			}
+			timeout := 10 * time.Second
+			network := "tcp"
+			cliSess := session.NewClient(
+				rfb.OptSecurityHandlers([]rfb.ISecurityHandler{&security.ClientAuthVNC{Password: targetCfg.Password}}...),
+				rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+					return net.DialTimeout(network, targetCfg.Addr(), timeout)
+				}),
+			)
+			p := vnc.NewVncProxy(cliSess, svrSess)
+			p.Start()
+			for {
+				err := <-p.Error()
+				logger.Warning(err)
+			}
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})

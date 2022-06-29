@@ -75,5 +75,6 @@ func (*ClientSecurityHandler) Handle(session rfb.ISession) error {
 		}
 		return fmt.Errorf("%s", reasonText)
 	}
-	return session.SetSecurityHandler(secType)
+	session.SetSecurityHandler(secType)
+	return nil
 }

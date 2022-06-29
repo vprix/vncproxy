@@ -27,7 +27,6 @@ type ServerSession struct {
 
 	options         rfb.Options          // 配置信息
 	protocol        string               //协议版本
-	desktop         *rfb.Desktop         // 桌面对象
 	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
@@ -40,45 +39,47 @@ func NewServerSession(opts ...rfb.Option) *ServerSession {
 	sess := &ServerSession{
 		swap: gmap.New(true),
 	}
-	for _, o := range opts {
-		o(&sess.options)
-	}
-	desktop := &rfb.Desktop{}
-	desktop.SetPixelFormat(sess.options.PixelFormat)
-	sess.desktop = desktop
-	if sess.options.QuitCh == nil {
-		sess.options.QuitCh = make(chan struct{})
-	}
-	if sess.options.ErrorCh == nil {
-		sess.options.ErrorCh = make(chan error, 32)
-	}
-	if sess.options.Input == nil {
-		sess.options.Input = make(chan rfb.Message)
-	}
-	if sess.options.Output == nil {
-		sess.options.Output = make(chan rfb.Message)
-	}
-	if len(sess.options.Messages) == 0 {
-		sess.options.Messages = messages.DefaultClientMessage
-	}
-	if len(sess.options.Encodings) == 0 {
-		sess.options.Encodings = encodings.DefaultEncodings
-	}
+	sess.configure(opts...)
 
 	return sess
 }
 
 // Init 初始化参数
 func (that *ServerSession) Init(opts ...rfb.Option) error {
-	for _, o := range opts {
-		o(&that.options)
-	}
+	that.configure(opts...)
 	return nil
 }
 
-func (that *ServerSession) Run() {
+func (that *ServerSession) configure(opts ...rfb.Option) {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	if that.options.PixelFormat.BPP == 0 {
+		that.options.PixelFormat = rfb.PixelFormat32bit
+	}
+	if that.options.QuitCh == nil {
+		that.options.QuitCh = make(chan struct{})
+	}
+	if that.options.ErrorCh == nil {
+		that.options.ErrorCh = make(chan error, 32)
+	}
+	if that.options.Input == nil {
+		that.options.Input = make(chan rfb.Message)
+	}
+	if that.options.Output == nil {
+		that.options.Output = make(chan rfb.Message)
+	}
+	if len(that.options.Messages) == 0 {
+		that.options.Messages = messages.DefaultClientMessage
+	}
+	if len(that.options.Encodings) == 0 {
+		that.options.Encodings = encodings.DefaultEncodings
+	}
+}
+
+func (that *ServerSession) Start() {
 	var err error
-	that.c, err = that.options.GetConn()
+	that.c, err = that.options.GetConn(that)
 	if err != nil {
 		that.options.ErrorCh <- err
 		return
@@ -118,11 +119,6 @@ func (that *ServerSession) SetProtocolVersion(pv string) {
 	that.protocol = pv
 }
 
-// Desktop 获取桌面对象
-func (that *ServerSession) Desktop() *rfb.Desktop {
-	return that.desktop
-}
-
 // Encodings 获取当前支持的编码格式
 func (that *ServerSession) Encodings() []rfb.IEncoding {
 	return that.encodings
@@ -147,8 +143,8 @@ func (that *ServerSession) Flush() error {
 }
 
 // Wait 等待会话处理完成
-func (that *ServerSession) Wait() {
-	<-that.options.QuitCh
+func (that *ServerSession) Wait() <-chan struct{} {
+	return that.options.QuitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -157,13 +153,12 @@ func (that *ServerSession) SecurityHandler() rfb.ISecurityHandler {
 }
 
 // SetSecurityHandler 设置安全认证处理方法
-func (that *ServerSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) error {
+func (that *ServerSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) {
 	that.securityHandler = securityHandler
-	return nil
 }
 
-// GetEncoding 通过编码类型判断是否支持编码对象
-func (that *ServerSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
+// NewEncoding 通过编码类型判断是否支持编码对象
+func (that *ServerSession) NewEncoding(typ rfb.EncodingType) rfb.IEncoding {
 	for _, enc := range that.encodings {
 		if enc.Type() == typ && enc.Supported(that) {
 			return enc.Clone()
@@ -185,8 +180,7 @@ func (that *ServerSession) Write(buf []byte) (int, error) {
 // Close 关闭会话
 func (that *ServerSession) Close() error {
 	if that.options.QuitCh != nil {
-		close(that.options.QuitCh)
-		that.options.QuitCh = nil
+		that.options.QuitCh <- struct{}{}
 	}
 	return that.c.Close()
 }
@@ -199,4 +193,29 @@ func (that *ServerSession) Swap() *gmap.Map {
 // Type session类型
 func (that *ServerSession) Type() rfb.SessionType {
 	return rfb.ServerSessionType
+}
+
+// SetPixelFormat 设置像素格式
+func (that *ServerSession) SetPixelFormat(pf rfb.PixelFormat) {
+	that.options.PixelFormat = pf
+}
+
+// SetColorMap 设置颜色地图
+func (that *ServerSession) SetColorMap(cm rfb.ColorMap) {
+	that.options.ColorMap = cm
+}
+
+// SetWidth 设置桌面宽度
+func (that *ServerSession) SetWidth(width uint16) {
+	that.options.Width = width
+}
+
+// SetHeight 设置桌面高度
+func (that *ServerSession) SetHeight(height uint16) {
+	that.options.Height = height
+}
+
+// SetDesktopName 设置桌面名称
+func (that *ServerSession) SetDesktopName(name []byte) {
+	that.options.DesktopName = name
 }

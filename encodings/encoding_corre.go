@@ -42,7 +42,7 @@ func (that *CoRREEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error
 	if that.buff == nil {
 		that.buff = &bytes.Buffer{}
 	}
-	pf := session.Desktop().PixelFormat()
+	pf := session.Options().PixelFormat
 	// 子矩形的数量
 	var numOfSubRectangles uint32
 	if err := binary.Read(session, binary.BigEndian, &numOfSubRectangles); err != nil {

@@ -10,7 +10,7 @@ import (
 )
 
 type Recorder struct {
-	closed          chan struct{}
+	errorCh         chan error
 	cliSession      *session.ClientSession // 链接到vnc服务端的会话
 	recorderSession *session.RecorderSession
 }
@@ -19,18 +19,18 @@ func NewRecorder(recorderSess *session.RecorderSession, cliSession *session.Clie
 	recorder := &Recorder{
 		recorderSession: recorderSess,
 		cliSession:      cliSession,
+		errorCh:         make(chan error, 32),
 	}
 	return recorder
 }
 
 func (that *Recorder) Start() error {
 	var err error
-	that.cliSession.Run()
+	that.cliSession.Start()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,
 		rfb.EncPointerPosPseudo,
 		rfb.EncCopyRect,
-		rfb.EncTight,
 		rfb.EncZRLE,
 		rfb.EncHexTile,
 		rfb.EncZlib,
@@ -42,12 +42,12 @@ func (that *Recorder) Start() error {
 	}
 	// 设置参数信息
 	that.recorderSession.SetProtocolVersion(that.cliSession.ProtocolVersion())
-	that.recorderSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
-	that.recorderSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
-	that.recorderSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
-	that.recorderSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
-	that.recorderSession.Run()
-	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
+	that.recorderSession.SetWidth(that.cliSession.Options().Width)
+	that.recorderSession.SetHeight(that.cliSession.Options().Height)
+	that.recorderSession.SetPixelFormat(that.cliSession.Options().PixelFormat)
+	that.recorderSession.SetDesktopName(that.cliSession.Options().DesktopName)
+	that.recorderSession.Start()
+	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Options().Width, Height: that.cliSession.Options().Height}
 	err = reqMsg.Write(that.cliSession)
 	if err != nil {
 		return err
@@ -55,9 +55,9 @@ func (that *Recorder) Start() error {
 	var lastUpdate *gtime.Time
 	for {
 		select {
-		case msg := <-that.cliSession.Options().Output:
+		case msg := <-that.recorderSession.Options().Output:
 			logger.Debugf("client message received.messageType:%d,message:%s", msg.Type(), msg)
-		case msg := <-that.cliSession.Options().Input:
+		case msg := <-that.cliSession.Options().Output:
 			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.recorderSession)
 				if err != nil {
@@ -74,28 +74,29 @@ func (that *Recorder) Start() error {
 					return err
 				}
 				lastUpdate = gtime.Now()
-				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
+				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Options().Width, Height: that.cliSession.Options().Height}
 				err = reqMsg.Write(that.cliSession)
 				if err != nil {
 					return err
 				}
 			}
-		case <-that.closed:
+		case <-that.cliSession.Wait():
 			return nil
+		case <-that.recorderSession.Wait():
+			return nil
+		case err = <-that.cliSession.Options().ErrorCh:
+			that.errorCh <- err
+		case err = <-that.recorderSession.Options().ErrorCh:
+			that.errorCh <- err
 		}
 	}
 }
 
 func (that *Recorder) Close() {
-	if that.closed != nil {
-		close(that.closed)
-		that.closed = nil
-		_ = that.cliSession.Close()
-		_ = that.recorderSession.Close()
-	}
-
+	_ = that.cliSession.Close()
+	_ = that.recorderSession.Close()
 }
 
 func (that *Recorder) Error() <-chan error {
-	return that.cliSession.Options().ErrorCh
+	return that.errorCh
 }

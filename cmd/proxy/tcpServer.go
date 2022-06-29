@@ -79,7 +79,7 @@ func (that *TcpSandBox) Setup() error {
 			rfb.OptHeight(768),
 			rfb.OptWidth(1024),
 			rfb.OptSecurityHandlers(securityHandlers...),
-			rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+			rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
 				return conn, nil
 			}),
 		)
@@ -87,18 +87,16 @@ func (that *TcpSandBox) Setup() error {
 		network := "tcp"
 		cliSess := session.NewClient(
 			rfb.OptSecurityHandlers([]rfb.ISecurityHandler{&security.ClientAuthVNC{Password: targetCfg.Password}}...),
-			rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+			rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
 				return net.DialTimeout(network, targetCfg.Addr(), timeout)
 			}),
 		)
-		p := vnc.NewVncProxy(svrSess, cliSess)
-		go p.Start()
-		go func() {
-			for {
-				err = <-p.Error()
-				glog.Warning(err)
-			}
-		}()
+		p := vnc.NewVncProxy(cliSess, svrSess)
+		p.Start()
+		for {
+			err = <-p.Error()
+			glog.Warning(err)
+		}
 	}
 }
 

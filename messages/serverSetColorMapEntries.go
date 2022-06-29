@@ -56,7 +56,7 @@ func (that *SetColorMapEntries) Read(session rfb.ISession) (rfb.Message, error) 
 	}
 
 	msg.Colors = make([]rfb.Color, msg.ColorsNum)
-	colorMap := session.Desktop().ColorMap()
+	colorMap := session.Options().ColorMap
 	//读取指定的颜色数据
 	for i := uint16(0); i < msg.ColorsNum; i++ {
 		color := &msg.Colors[i]
@@ -66,7 +66,7 @@ func (that *SetColorMapEntries) Read(session rfb.ISession) (rfb.Message, error) 
 		}
 		colorMap[msg.FirstColor+i] = *color
 	}
-	session.Desktop().SetColorMap(colorMap)
+	session.SetColorMap(colorMap)
 	return msg, nil
 }
 

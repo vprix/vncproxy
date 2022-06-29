@@ -21,7 +21,7 @@ USAGE
 	./server [start|stop|quit] [OPTION]
 OPTION
 	--imageFile     要生成的截图地址,暂时只支持jpeg格式  必传
-    --vncHost       要连接的vnc服务端地址  必传
+	--vncHost       要连接的vnc服务端地址  必传
 	--vncPort       要连接的vnc服务端端口 必传
 	--vncPassword   要连接的vnc服务端密码 不传则使用auth none
 	--debug         是否开启debug 默认debug=false
@@ -89,12 +89,12 @@ func main() {
 				Host:     vncHost.String(),
 				Port:     vncPort.Int(),
 				Password: svr.CmdParser().GetOptVar("vncPassword", "").Bytes(),
-				Timeout:  10 * time.Second,
+				Timeout:  5 * time.Second,
 			},
 		)
-		img, err := v.Start()
+		img, err := v.GetImage()
 		if err != nil {
-			fmt.Println(err)
+			logger.Fatal(err)
 		}
 
 		j := &bytes.Buffer{}

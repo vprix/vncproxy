@@ -49,9 +49,9 @@ func NewVideo(cliCfg *rfb.Options, targetCfg rfb.TargetConfig) *Video {
 		}
 	}
 	recorder := &Video{
-		canvasSession: session.NewCanvasSession(*cliCfg),
-		targetCfg:     targetCfg,
-		cliCfg:        cliCfg,
+		//canvasSession: session.NewCanvasSession(*cliCfg),
+		targetCfg: targetCfg,
+		cliCfg:    cliCfg,
 	}
 	return recorder
 }
@@ -66,12 +66,12 @@ func (that *Video) Start() error {
 	if len(that.targetCfg.Network) > 0 {
 		network = that.targetCfg.Network
 	}
-	that.cliCfg.GetConn = func() (io.ReadWriteCloser, error) {
+	that.cliCfg.GetConn = func(sess rfb.ISession) (io.ReadWriteCloser, error) {
 		return net.DialTimeout(network, that.targetCfg.Addr(), timeout)
 	}
 	that.cliSession = session.NewClient()
 
-	that.cliSession.Run()
+	that.cliSession.Start()
 	encS := []rfb.EncodingType{
 		rfb.EncCursorPseudo,
 		rfb.EncPointerPosPseudo,
@@ -88,12 +88,12 @@ func (that *Video) Start() error {
 	}
 	// 设置参数信息
 	that.canvasSession.SetProtocolVersion(that.cliSession.ProtocolVersion())
-	that.canvasSession.Desktop().SetWidth(that.cliSession.Desktop().Width())
-	that.canvasSession.Desktop().SetHeight(that.cliSession.Desktop().Height())
-	that.canvasSession.Desktop().SetPixelFormat(that.cliSession.Desktop().PixelFormat())
-	that.canvasSession.Desktop().SetDesktopName(that.cliSession.Desktop().DesktopName())
-	that.canvasSession.Run()
-	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
+	that.canvasSession.SetWidth(that.cliSession.Options().Width)
+	that.canvasSession.SetHeight(that.cliSession.Options().Height)
+	that.canvasSession.SetPixelFormat(that.cliSession.Options().PixelFormat)
+	that.canvasSession.SetDesktopName(that.cliSession.Options().DesktopName)
+	that.canvasSession.Start()
+	reqMsg := messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Options().Width, Height: that.cliSession.Options().Height}
 	err = reqMsg.Write(that.cliSession)
 	if err != nil {
 		return err
@@ -112,7 +112,7 @@ func (that *Video) Start() error {
 				if err != nil {
 					return err
 				}
-				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Desktop().Width(), Height: that.cliSession.Desktop().Height()}
+				reqMsg = messages.FramebufferUpdateRequest{Inc: 1, X: 0, Y: 0, Width: that.cliSession.Options().Width, Height: that.cliSession.Options().Height}
 				err = reqMsg.Write(that.cliSession)
 				if err != nil {
 					return err

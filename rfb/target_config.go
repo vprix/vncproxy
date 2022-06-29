@@ -16,3 +16,17 @@ type TargetConfig struct {
 func (that TargetConfig) Addr() string {
 	return fmt.Sprintf("%s:%d", that.Host, that.Port)
 }
+
+func (that TargetConfig) GetNetwork() string {
+	if len(that.Network) == 0 {
+		return "tcp"
+	}
+	return that.Network
+}
+
+func (that TargetConfig) GetTimeout() time.Duration {
+	if that.Timeout == 0 {
+		return 10 * time.Second
+	}
+	return that.Timeout
+}

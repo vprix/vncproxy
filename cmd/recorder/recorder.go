@@ -71,7 +71,7 @@ func (that *RecorderSandBox) Setup() error {
 		rfb.OptEncodings(encodings.DefaultEncodings...),
 		rfb.OptMessages(messages.DefaultServerMessages...),
 		rfb.OptPixelFormat(rfb.PixelFormat32bit),
-		rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+		rfb.OptGetConn(func(iSession rfb.ISession) (io.ReadWriteCloser, error) {
 			if gfile.Exists(saveFilePath) {
 				saveFilePath = fmt.Sprintf("%s%s%s_%d%s",
 					gfile.Dir(saveFilePath),
@@ -88,7 +88,7 @@ func (that *RecorderSandBox) Setup() error {
 		rfb.OptEncodings(encodings.DefaultEncodings...),
 		rfb.OptMessages(messages.DefaultServerMessages...),
 		rfb.OptPixelFormat(rfb.PixelFormat32bit),
-		rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
+		rfb.OptGetConn(func(iSession rfb.ISession) (io.ReadWriteCloser, error) {
 			return net.DialTimeout(targetCfg.Network, targetCfg.Addr(), targetCfg.Timeout)
 		}),
 		rfb.OptSecurityHandlers(securityHandlers...),

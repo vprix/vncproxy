@@ -70,7 +70,7 @@ func (that *ZRLEEncoding) Write(sess rfb.ISession, rect *rfb.Rectangle) error {
 		return errors.New("ByteBuffer is nil")
 	}
 	if sess.Type() == rfb.CanvasSessionType {
-		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.Desktop().PixelFormat(), rect)
+		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.Options().PixelFormat, rect)
 	}
 	_, err := that.buff.WriteTo(sess)
 	that.buff.Reset()

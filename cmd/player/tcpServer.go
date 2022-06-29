@@ -6,9 +6,11 @@ import (
 	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/drpc"
 	"github.com/osgochina/dmicro/easyservice"
-	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
+	"github.com/vprix/vncproxy/session"
+	"github.com/vprix/vncproxy/vnc"
+	"io"
 	"net"
 )
 
@@ -50,18 +52,9 @@ func (that *TcpSandBox) Setup() error {
 		glog.Fatalf("Error listen. %v", err)
 	}
 	fmt.Printf("Tcp proxy started! listening %s . vnc server %s:%d\n", that.lis.Addr().String(), that.cfg.GetString("vncHost"), that.cfg.GetInt("vncPort"))
-	svrCfg := &rfb.Options{
-		Encodings:   encodings.DefaultEncodings,
-		DesktopName: []byte("Vprix VNC Proxy"),
-		Width:       1024,
-		Height:      768,
-		SecurityHandlers: []rfb.ISecurityHandler{
-			&security.ServerAuthNone{},
-		},
-		//DisableMessageType: []rfb.ServerMessageType{rfb.ServerCutText},
-	}
+	securityHandlers := []rfb.ISecurityHandler{&security.ServerAuthNone{}}
 	if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-		svrCfg.SecurityHandlers = append(svrCfg.SecurityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+		securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
 	}
 	for {
 		conn, err := that.lis.Accept()
@@ -73,13 +66,18 @@ func (that *TcpSandBox) Setup() error {
 			}
 			return err
 		}
-		p := attachNewServerConn(conn, svrCfg, nil, that.cfg.GetString("rfbFile"))
-		go func() {
-			for {
-				err = <-p.Error()
-				glog.Warning(err)
-			}
-		}()
+		svrSession := session.NewServerSession(
+			rfb.OptSecurityHandlers(securityHandlers...),
+			rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+				return conn, nil
+			}),
+		)
+		play := vnc.NewPlayer(that.cfg.GetString("rbsFile"), svrSession)
+		_ = play.Start()
+		for {
+			err = <-play.Error()
+			glog.Warning(err)
+		}
 	}
 }
 

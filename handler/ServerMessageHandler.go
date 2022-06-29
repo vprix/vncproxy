@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
-	"sync"
 )
 
 // ServerMessageHandler vnc握手已结束，进入消息交互阶段
@@ -21,25 +20,17 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 
 	cfg := session.Options()
 	var err error
-	var wg sync.WaitGroup
-
-	defer func() {
-		_ = session.Close()
-	}()
 	clientMessages := make(map[rfb.ClientMessageType]rfb.Message)
 	for _, m := range cfg.Messages {
 		clientMessages[rfb.ClientMessageType(m.Type())] = m
 	}
-	wg.Add(2)
-
-	quit := make(chan struct{})
 
 	// 处理proxy服务端发送给vnc客户端的消息
 	go func() {
-		defer wg.Done()
+		//defer wg.Done()
 		for {
 			select {
-			case <-quit: // 如果收到退出信号，则退出协程
+			case <-session.Wait(): // 如果收到退出信号，则退出协程
 				return
 			case msg := <-cfg.Input:
 				// 收到proxy服务端消息，则转发写入到vnc客户端会话中。
@@ -48,10 +39,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
-					if quit != nil {
-						close(quit)
-						quit = nil
-					}
+					_ = session.Close()
 					return
 				}
 			}
@@ -60,37 +48,30 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 
 	// 处理vnc客户端发送给proxy服务端的消息
 	go func() {
-		defer wg.Done()
 		for {
 			select {
-			case <-quit:
+			case <-session.Wait():
 				return
 			default:
 				// 从vnc客户端的会话中读取消息类型
 				var messageType rfb.ClientMessageType
 				if err = binary.Read(session, binary.BigEndian, &messageType); err != nil {
 					cfg.ErrorCh <- err
-					if quit != nil {
-						close(quit)
-						quit = nil
-					}
+					_ = session.Close()
 					return
 				}
 				// 判断vnc客户端发送的消息类型proxy服务端是否支持。
 				msg, ok := clientMessages[messageType]
 				if !ok {
 					cfg.ErrorCh <- fmt.Errorf("不支持的消息类型: %v", messageType)
-					close(quit)
+					_ = session.Close()
 					return
 				}
 				// 从会话中读取消息内容
 				parsedMsg, e := msg.Read(session)
 				if e != nil {
 					cfg.ErrorCh <- e
-					if quit != nil {
-						close(quit)
-						quit = nil
-					}
+					_ = session.Close()
 					return
 				}
 				if logger.IsDebug() {
@@ -101,7 +82,5 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 			}
 		}
 	}()
-
-	wg.Wait()
 	return nil
 }

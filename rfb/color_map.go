@@ -16,7 +16,7 @@ type Color struct {
 // 写入颜色数据
 func (that *Color) Write(session ISession) error {
 	var err error
-	pf := session.Desktop().PixelFormat()
+	pf := session.Options().PixelFormat
 	order := pf.Order()
 	pixel := that.cmIndex
 	if that.pf.TrueColor != 0 {

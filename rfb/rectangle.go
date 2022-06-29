@@ -46,7 +46,7 @@ func (that *Rectangle) Read(sess ISession) error {
 	if err = binary.Read(sess, binary.BigEndian, &that.EncType); err != nil {
 		return err
 	}
-	that.Enc = sess.GetEncoding(that.EncType)
+	that.Enc = sess.NewEncoding(that.EncType)
 	if that.Enc == nil {
 		return fmt.Errorf("不支持的编码类型: %s", that.EncType)
 	}

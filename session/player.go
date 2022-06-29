@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"github.com/gogf/gf/container/gmap"
 	"github.com/vprix/vncproxy/encodings"
+	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
 	"io"
 )
@@ -16,50 +17,57 @@ type PlayerSession struct {
 
 	options         rfb.Options          // 配置信息
 	protocol        string               //协议版本
-	desktop         *rfb.Desktop         // 桌面对象
-	encodings       []rfb.IEncoding      // 支持的编码列
 	securityHandler rfb.ISecurityHandler // 安全认证方式
 
-	swap    *gmap.Map
-	quitCh  chan struct{}
-	errorCh chan error
+	swap *gmap.Map
 }
 
-func NewPlayerSession(options rfb.Options) *PlayerSession {
-	enc := options.Encodings
-	if len(options.Encodings) == 0 {
-		enc = []rfb.IEncoding{&encodings.RawEncoding{}}
+func NewPlayerSession(opts ...rfb.Option) *PlayerSession {
+	sess := &PlayerSession{
+		swap: gmap.New(true),
 	}
-	desktop := &rfb.Desktop{}
-	if options.QuitCh == nil {
-		options.QuitCh = make(chan struct{})
-	}
-	if options.ErrorCh == nil {
-		options.ErrorCh = make(chan error, 32)
-	}
-	return &PlayerSession{
-		options:   options,
-		desktop:   desktop,
-		encodings: enc,
-		errorCh:   options.ErrorCh,
-		quitCh:    options.QuitCh,
-		swap:      gmap.New(true),
-	}
+	sess.configure(opts...)
+	return sess
 }
 
 // Init 初始化参数
 func (that *PlayerSession) Init(opts ...rfb.Option) error {
-	for _, o := range opts {
-		o(&that.options)
-	}
+	that.configure(opts...)
 	return nil
 }
 
-func (that *PlayerSession) Run() {
+func (that *PlayerSession) configure(opts ...rfb.Option) {
+	for _, o := range opts {
+		o(&that.options)
+	}
+	if that.options.PixelFormat.BPP == 0 {
+		that.options.PixelFormat = rfb.PixelFormat32bit
+	}
+	if that.options.QuitCh == nil {
+		that.options.QuitCh = make(chan struct{})
+	}
+	if that.options.ErrorCh == nil {
+		that.options.ErrorCh = make(chan error, 32)
+	}
+	if that.options.Input == nil {
+		that.options.Input = make(chan rfb.Message)
+	}
+	if that.options.Output == nil {
+		that.options.Output = make(chan rfb.Message)
+	}
+	if len(that.options.Messages) == 0 {
+		that.options.Messages = messages.DefaultClientMessage
+	}
+	if len(that.options.Encodings) == 0 {
+		that.options.Encodings = encodings.DefaultEncodings
+	}
+}
+
+func (that *PlayerSession) Start() {
 	var err error
-	that.c, err = that.options.GetConn()
+	that.c, err = that.options.GetConn(that)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
 
@@ -68,59 +76,59 @@ func (that *PlayerSession) Run() {
 	version := make([]byte, len(RBSVersion))
 	_, err = that.br.Read(version)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
 	// 读取rfb协议
 	version = make([]byte, len(rfb.ProtoVersion38))
 	_, err = that.br.Read(version)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
 	that.protocol = string(version)
 	var secTypeNone int32
 	err = binary.Read(that.br, binary.BigEndian, &secTypeNone)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
 	var fbWeight uint16
 	err = binary.Read(that.br, binary.BigEndian, &fbWeight)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
-	that.desktop.SetWidth(fbWeight)
+	that.SetWidth(fbWeight)
 
 	var fbHeight uint16
 	err = binary.Read(that.br, binary.BigEndian, &fbHeight)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
-	that.desktop.SetHeight(fbWeight)
+	that.SetHeight(fbWeight)
 
 	var pixelFormat rfb.PixelFormat
 	err = binary.Read(that.br, binary.BigEndian, &pixelFormat)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
-	that.desktop.SetPixelFormat(pixelFormat)
+	that.SetPixelFormat(pixelFormat)
 	var desktopNameSize uint32
 	err = binary.Read(that.br, binary.BigEndian, &desktopNameSize)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
 	desktopName := make([]byte, desktopNameSize)
 	_, err = that.Read(desktopName)
 	if err != nil {
-		that.errorCh <- err
+		that.options.ErrorCh <- err
 		return
 	}
-	that.desktop.SetDesktopName(desktopName)
+	that.SetDesktopName(desktopName)
 	return
 }
 
@@ -132,11 +140,6 @@ func (that *PlayerSession) Conn() io.ReadWriteCloser {
 // Options 获取配置信息
 func (that *PlayerSession) Options() rfb.Options {
 	return that.options
-}
-
-// Desktop 获取桌面对象
-func (that *PlayerSession) Desktop() *rfb.Desktop {
-	return that.desktop
 }
 
 // ProtocolVersion 获取会话使用的协议版本
@@ -151,11 +154,12 @@ func (that *PlayerSession) SetProtocolVersion(pv string) {
 
 // Encodings 获取当前支持的编码格式
 func (that *PlayerSession) Encodings() []rfb.IEncoding {
-	return that.encodings
+	return that.options.Encodings
 }
 
 // SetEncodings 设置编码格式
 func (that *PlayerSession) SetEncodings(encs []rfb.EncodingType) error {
+
 	return nil
 }
 
@@ -164,8 +168,8 @@ func (that *PlayerSession) Flush() error {
 }
 
 // Wait 等待会话处理完成
-func (that *PlayerSession) Wait() {
-	<-that.quitCh
+func (that *PlayerSession) Wait() <-chan struct{} {
+	return that.options.QuitCh
 }
 
 // SecurityHandler 返回安全认证处理方法
@@ -174,13 +178,12 @@ func (that *PlayerSession) SecurityHandler() rfb.ISecurityHandler {
 }
 
 // SetSecurityHandler 设置安全认证处理方法
-func (that *PlayerSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) error {
-	return nil
+func (that *PlayerSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) {
 }
 
-// GetEncoding 通过编码类型判断是否支持编码对象
-func (that *PlayerSession) GetEncoding(typ rfb.EncodingType) rfb.IEncoding {
-	for _, enc := range that.encodings {
+// NewEncoding 通过编码类型判断是否支持编码对象
+func (that *PlayerSession) NewEncoding(typ rfb.EncodingType) rfb.IEncoding {
+	for _, enc := range that.options.Encodings {
 		if enc.Type() == typ && enc.Supported(that) {
 			return enc.Clone()
 		}
@@ -200,9 +203,8 @@ func (that *PlayerSession) Write(buf []byte) (int, error) {
 
 // Close 关闭会话
 func (that *PlayerSession) Close() error {
-	if that.quitCh != nil {
-		close(that.quitCh)
-		that.quitCh = nil
+	if that.options.QuitCh != nil {
+		that.options.QuitCh <- struct{}{}
 	}
 	return that.c.Close()
 }
@@ -212,4 +214,29 @@ func (that *PlayerSession) Swap() *gmap.Map {
 }
 func (that *PlayerSession) Type() rfb.SessionType {
 	return rfb.PlayerSessionType
+}
+
+// SetPixelFormat 设置像素格式
+func (that *PlayerSession) SetPixelFormat(pf rfb.PixelFormat) {
+	that.options.PixelFormat = pf
+}
+
+// SetColorMap 设置颜色地图
+func (that *PlayerSession) SetColorMap(cm rfb.ColorMap) {
+	that.options.ColorMap = cm
+}
+
+// SetWidth 设置桌面宽度
+func (that *PlayerSession) SetWidth(width uint16) {
+	that.options.Width = width
+}
+
+// SetHeight 设置桌面高度
+func (that *PlayerSession) SetHeight(height uint16) {
+	that.options.Height = height
+}
+
+// SetDesktopName 设置桌面名称
+func (that *PlayerSession) SetDesktopName(name []byte) {
+	that.options.DesktopName = name
 }

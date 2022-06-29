@@ -71,7 +71,7 @@ func (that *HexTileEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) err
 	if that.buff == nil {
 		that.buff = &bytes.Buffer{}
 	}
-	bytesPerPixel := int(session.Desktop().PixelFormat().BPP) / 8
+	bytesPerPixel := int(session.Options().PixelFormat.BPP) / 8
 	// 从上到下
 	for ty := rect.Y; ty < rect.Y+rect.Height; ty += 16 {
 		th := 16
@@ -92,7 +92,7 @@ func (that *HexTileEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) err
 			if err != nil {
 				return gerror.Newf("HextileEncoding.Read: error in hextile reader: %v", err)
 			}
-			_ = binary.Write(that.buff, session.Desktop().PixelFormat().Order(), subEncoding)
+			_ = binary.Write(that.buff, session.Options().PixelFormat.Order(), subEncoding)
 			// 如果是原始编码
 			if (subEncoding & HexTileRaw) != 0 {
 				bt, err = ReadBytes(tw*th*bytesPerPixel, session)
@@ -127,7 +127,7 @@ func (that *HexTileEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) err
 				if err != nil {
 					return gerror.Newf("HextileEncoding.Read: error in hextile reader: %v", err)
 				}
-				_ = binary.Write(that.buff, session.Desktop().PixelFormat().Order(), nSubRects)
+				_ = binary.Write(that.buff, session.Options().PixelFormat.Order(), nSubRects)
 
 				for i := 0; i < int(nSubRects); i++ {
 					if (subEncoding & HexTileSubRectsColoured) != 0 {
@@ -141,13 +141,13 @@ func (that *HexTileEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) err
 					if err != nil {
 						return gerror.Newf("HextileEncoding.Read: error in hextile reader: %v", err)
 					}
-					_ = binary.Write(that.buff, session.Desktop().PixelFormat().Order(), xy)
+					_ = binary.Write(that.buff, session.Options().PixelFormat.Order(), xy)
 
 					wh, err := ReadUint8(session)
 					if err != nil {
 						return gerror.Newf("HextileEncoding.Read: error in hextile reader: %v", err)
 					}
-					_ = binary.Write(that.buff, session.Desktop().PixelFormat().Order(), wh)
+					_ = binary.Write(that.buff, session.Options().PixelFormat.Order(), wh)
 				}
 			}
 		}
@@ -157,7 +157,7 @@ func (that *HexTileEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) err
 
 func (that *HexTileEncoding) Write(sess rfb.ISession, rect *rfb.Rectangle) error {
 	if sess.Type() == rfb.CanvasSessionType {
-		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.Desktop().PixelFormat(), rect)
+		return that.draw(sess.Conn().(*canvas.VncCanvas), sess.Options().PixelFormat, rect)
 	}
 	var err error
 	_, err = that.buff.WriteTo(sess)

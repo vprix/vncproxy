@@ -3,27 +3,27 @@ package rfb
 import "io"
 
 type Option func(*Options)
-type GetConn func() (io.ReadWriteCloser, error)
+type GetConn func(sess ISession) (io.ReadWriteCloser, error)
 
 // Options 配置信息
 type Options struct {
 	// 公共配置
 	Handlers           []IHandler         //  处理程序列表
 	SecurityHandlers   []ISecurityHandler // 安全验证
-	Encodings          []IEncoding
-	PixelFormat        PixelFormat // 像素格式
-	ColorMap           ColorMap    // 颜色地图
-	Input              chan Message
-	Output             chan Message
-	Messages           []Message
-	DisableMessageType []MessageType // 禁用的消息，碰到这些消息，则跳过
-	QuitCh             chan struct{} // 退出
-	ErrorCh            chan error
+	Encodings          []IEncoding        // 支持的编码类型
+	PixelFormat        PixelFormat        // 像素格式
+	ColorMap           ColorMap           // 颜色地图
+	Input              chan Message       // 输入消息
+	Output             chan Message       // 输出消息
+	Messages           []Message          // 支持的消息类型
+	DisableMessageType []MessageType      // 禁用的消息，碰到这些消息，则跳过
+	QuitCh             chan struct{}      // 退出
+	ErrorCh            chan error         // 错误通道
 
 	// 服务端配置
-	DesktopName []byte
-	Height      uint16
-	Width       uint16
+	DesktopName []byte // 桌面名称，作为服务端配置的时候，需要设置
+	Height      uint16 // 缓冲帧高度，作为服务端配置的时候，需要设置
+	Width       uint16 // 缓冲帧宽度，作为服务端配置的时候，需要设置
 
 	// 客户端配置
 	DrawCursor bool // 是否绘制鼠标指针

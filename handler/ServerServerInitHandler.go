@@ -14,24 +14,24 @@ func (*ServerServerInitHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debugf("[Proxy服务端->VNC客户端]: 执行vnc握手第四步:[ServerInit]")
 	}
-	if err := binary.Write(session, binary.BigEndian, session.Desktop().Width()); err != nil {
+	if err := binary.Write(session, binary.BigEndian, session.Options().Width); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, session.Desktop().Height()); err != nil {
+	if err := binary.Write(session, binary.BigEndian, session.Options().Height); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, session.Desktop().PixelFormat()); err != nil {
+	if err := binary.Write(session, binary.BigEndian, session.Options().PixelFormat); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, uint32(len(session.Desktop().DesktopName()))); err != nil {
+	if err := binary.Write(session, binary.BigEndian, uint32(len(session.Options().DesktopName))); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, session.Desktop().DesktopName()); err != nil {
+	if err := binary.Write(session, binary.BigEndian, session.Options().DesktopName); err != nil {
 		return err
 	}
 	if logger.IsDebug() {
 		logger.Debugf("[Proxy服务端->VNC客户端]: ServerInit[Width:%d,Height:%d,PixelFormat:%s,DesktopName:%s]",
-			session.Desktop().Width(), session.Desktop().Height(), session.Desktop().PixelFormat(), session.Desktop().DesktopName())
+			session.Options().Width, session.Options().Height, session.Options().PixelFormat, session.Options().DesktopName)
 	}
 	return session.Flush()
 }

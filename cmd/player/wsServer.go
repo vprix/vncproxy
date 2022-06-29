@@ -7,10 +7,12 @@ import (
 	"github.com/gogf/gf/os/gcfg"
 	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/easyservice"
-	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
+	"github.com/vprix/vncproxy/session"
+	"github.com/vprix/vncproxy/vnc"
 	"golang.org/x/net/websocket"
+	"io"
 )
 
 // WSSandBox  Tcp的服务
@@ -47,23 +49,22 @@ func (that *WSSandBox) Setup() error {
 	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
-			svrCfg := &rfb.Options{
-				Encodings:   encodings.DefaultEncodings,
-				DesktopName: []byte("Vprix VNC Proxy"),
-				Width:       1024,
-				Height:      768,
-				SecurityHandlers: []rfb.ISecurityHandler{
-					&security.ServerAuthNone{},
-				},
-				//DisableMessageType: []rfb.ServerMessageType{rfb.ServerCutText},
-			}
+
+			securityHandlers := []rfb.ISecurityHandler{&security.ServerAuthNone{}}
 			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-				svrCfg.SecurityHandlers = append(svrCfg.SecurityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+				securityHandlers = []rfb.ISecurityHandler{&security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")}}
 			}
-			p := attachNewServerConn(conn, svrCfg, nil, that.cfg.GetString("rbsFile"))
+			svrSession := session.NewServerSession(
+				rfb.OptSecurityHandlers(securityHandlers...),
+				rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+					return conn, nil
+				}),
+			)
+			play := vnc.NewPlayer(that.cfg.GetString("rfbFile"), svrSession)
+			_ = play.Start()
 			for {
-				err := <-p.Error()
-				glog.Error(err)
+				err := <-play.Error()
+				glog.Warning(err)
 			}
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)

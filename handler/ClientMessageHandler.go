@@ -32,12 +32,15 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	go func() {
 		for {
 			select {
+			case <-session.Wait():
+				return
 			case msg := <-cfg.Input:
 				if logger.IsDebug() {
 					logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
+					_ = session.Close()
 					return
 				}
 			}
@@ -48,6 +51,8 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	go func() {
 		for {
 			select {
+			case <-session.Wait():
+				return
 			default:
 				// 从会话中读取消息类型
 				var messageType rfb.MessageType
@@ -63,12 +68,14 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 				if !ok {
 					err = fmt.Errorf("未知的消息类型: %v", messageType)
 					cfg.ErrorCh <- err
+					_ = session.Close()
 					return
 				}
 				// 读取消息内容
 				parsedMsg, err := msg.Read(session)
 				if err != nil {
 					cfg.ErrorCh <- err
+					_ = session.Close()
 					return
 				}
 				if logger.IsDebug() {

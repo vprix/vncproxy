@@ -38,16 +38,16 @@ func (*ClientServerInitHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
 		logger.Debugf("[Proxy客户端->VNC服务端]:  serverInit: %s", srvInit)
 	}
-	session.Desktop().SetDesktopName(srvInit.NameText)
+	session.SetDesktopName(srvInit.NameText)
 	// 如果协议是aten1，则执行特殊的逻辑
 	if session.ProtocolVersion() == "aten1" {
-		session.Desktop().SetWidth(800)
-		session.Desktop().SetHeight(600)
+		session.SetWidth(800)
+		session.SetHeight(600)
 		// 发送像素格式消息
-		session.Desktop().SetPixelFormat(rfb.NewPixelFormatAten())
+		session.SetPixelFormat(rfb.NewPixelFormatAten())
 	} else {
-		session.Desktop().SetWidth(srvInit.FBWidth)
-		session.Desktop().SetHeight(srvInit.FBHeight)
+		session.SetWidth(srvInit.FBWidth)
+		session.SetHeight(srvInit.FBHeight)
 
 		//告诉vnc服务端，proxy客户端支持的像素格式，发送`SetPixelFormat`消息
 		pixelMsg := messages.SetPixelFormat{PF: rfb.PixelFormat32bit}
@@ -55,7 +55,7 @@ func (*ClientServerInitHandler) Handle(session rfb.ISession) error {
 		if err != nil {
 			return err
 		}
-		session.Desktop().SetPixelFormat(rfb.PixelFormat32bit)
+		session.SetPixelFormat(rfb.PixelFormat32bit)
 	}
 	// aten1协议需要再次读取扩展信息
 	if session.ProtocolVersion() == "aten1" {
