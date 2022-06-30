@@ -56,7 +56,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 				// 从vnc客户端的会话中读取消息类型
 				var messageType rfb.ClientMessageType
 				if err = binary.Read(session, binary.BigEndian, &messageType); err != nil {
-					cfg.ErrorCh <- err
+					cfg.ErrorCh <- fmt.Errorf("读取vnc客户端数据失败，err:%v", err)
 					_ = session.Close()
 					return
 				}
@@ -70,7 +70,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 				// 从会话中读取消息内容
 				parsedMsg, e := msg.Read(session)
 				if e != nil {
-					cfg.ErrorCh <- e
+					cfg.ErrorCh <- fmt.Errorf("解析消息失败，err:%v", e)
 					_ = session.Close()
 					return
 				}

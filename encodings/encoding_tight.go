@@ -80,27 +80,30 @@ func (that *TightEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error
 	compType := compressionControl >> 4 & 0x0F
 
 	switch compType {
-	case tightCompressionFill:
-
+	case tightCompressionFill: // 全部为紧凑压缩
 		bt, err := ReadBytes(bytesPixel, session)
 		if err != nil {
 			return err
 		}
 		_, _ = that.buff.Write(bt)
 
+		//jpeg紧凑压缩
 	case tightCompressionJPEG:
 		if pf.BPP == 8 {
 			return errors.New("Tight encoding: JPEG is not supported in 8 bpp mode. ")
 		}
+		// 获取jpeg流的长度
 		size, err := that.ReadCompactLen(session)
+		//读取jpeg流
 		jpegBytes, err := ReadBytes(size, session)
 		if err != nil {
 			return err
 		}
 		_, _ = that.buff.Write(jpegBytes)
 	default:
+		// 默认使用基础的压缩方式
 		if compType > tightCompressionJPEG {
-			return errors.New("Compression control byte is incorrect!")
+			return errors.New("Compression control byte is incorrect! ")
 		}
 		err = that.handleTightFilters(session, rect, &pf, compressionControl)
 		return err
@@ -108,6 +111,7 @@ func (that *TightEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error
 	return nil
 }
 
+// ReadCompactLen 获取动态长度
 func (that *TightEncoding) ReadCompactLen(session rfb.ISession) (int, error) {
 	var err error
 	part, err := ReadUint8(session)
@@ -115,24 +119,27 @@ func (that *TightEncoding) ReadCompactLen(session rfb.ISession) (int, error) {
 		return 0, err
 	}
 	size := uint32(part & 0x7F)
-	if (part & 0x80) != 0 {
-		part, err = ReadUint8(session)
-		if err := binary.Write(that.buff, binary.BigEndian, part); err != nil {
-			return 0, err
-		}
-		size |= uint32(part&0x7F) << 7
-		if (part & 0x80) != 0 {
-			part, err = ReadUint8(session)
-			if err := binary.Write(that.buff, binary.BigEndian, part); err != nil {
-				return 0, err
-			}
-			size |= uint32(part&0xFF) << 14
-		}
+	if (part & 0x80) == 0 {
+		return int(size), nil
 	}
+	part, err = ReadUint8(session)
+	if err := binary.Write(that.buff, binary.BigEndian, part); err != nil {
+		return 0, err
+	}
+	size |= uint32(int(part)&0x7F) << 7
+	if (part & 0x80) == 0 {
+		return int(size), nil
+	}
+	part, err = ReadUint8(session)
+	if err := binary.Write(that.buff, binary.BigEndian, part); err != nil {
+		return 0, err
+	}
+	size |= uint32(int(part)&0xFF) << 14
 
 	return int(size), err
 }
 
+// 基础压缩格式
 func (that *TightEncoding) handleTightFilters(session rfb.ISession, rect *rfb.Rectangle, pf *rfb.PixelFormat, compCtl uint8) error {
 
 	var FilterIdMask uint8 = 0x40
@@ -183,16 +190,22 @@ func (that *TightEncoding) handleTightFilters(session rfb.ISession, rect *rfb.Re
 	return nil
 }
 
+// 获取调色板数据
 func (that *TightEncoding) readTightPalette(session rfb.ISession, bytesPixel int) (int, error) {
 	colorCount, err := ReadUint8(session)
 	if err != nil {
 		return 0, fmt.Errorf("handleTightFilters: error in handling tight encoding, reading TightFilterPalette: %v", err)
 	}
 	_ = binary.Write(that.buff, binary.BigEndian, colorCount)
-	paletteSize := colorCount + 1
-	paletteColorBytes, err := ReadBytes(int(paletteSize)*bytesPixel, session)
+	// 注意这个地方，必须先转换为int类型，不然如果colorCount为255，+1的情况下会溢出，变成0，造成bug
+	numColors := int(colorCount) + 1
+	paletteSize := numColors * bytesPixel
+	paletteColorBytes, err := ReadBytes(paletteSize, session)
+	if err != nil {
+		return numColors, err
+	}
 	_, _ = that.buff.Write(paletteColorBytes)
-	return int(paletteSize), nil
+	return numColors, nil
 }
 
 func (that *TightEncoding) ReadTightData(dataSize int, session rfb.ISession) error {

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/gogf/gf/container/gmap"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/os/gcfg"
+	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/easyservice"
-	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
@@ -14,25 +15,26 @@ import (
 	"golang.org/x/net/websocket"
 	"io"
 	"net"
-	"time"
 )
 
 // WSSandBox  Tcp的服务
 type WSSandBox struct {
-	id      int
-	name    string
-	cfg     *gcfg.Config
-	service *easyservice.EasyService
-	svr     *ghttp.Server
+	id       int
+	name     string
+	cfg      *gcfg.Config
+	service  *easyservice.EasyService
+	svr      *ghttp.Server
+	proxyHub *gmap.StrAnyMap
 }
 
 // NewWSSandBox 创建一个默认的服务沙盒
 func NewWSSandBox(cfg *gcfg.Config) *WSSandBox {
 	id := easyservice.GetNextSandBoxId()
 	sBox := &WSSandBox{
-		id:   id,
-		name: fmt.Sprintf("ws_%d", id),
-		cfg:  cfg,
+		id:       id,
+		name:     fmt.Sprintf("ws_%d", id),
+		cfg:      cfg,
+		proxyHub: gmap.NewStrAnyMap(true),
 	}
 	return sBox
 }
@@ -51,40 +53,50 @@ func (that *WSSandBox) Setup() error {
 	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
-
 			securityHandlers := []rfb.ISecurityHandler{
 				&security.ServerAuthNone{},
 			}
 			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
 				securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
 			}
-			svrSess := session.NewServerSession(
-				rfb.OptDesktopName([]byte("Vprix VNC Proxy")),
-				rfb.OptHeight(768),
-				rfb.OptWidth(1024),
-				rfb.OptSecurityHandlers(securityHandlers...),
-				rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
-					return conn, nil
-				}),
-			)
 			targetCfg := rfb.TargetConfig{
 				Host:     that.cfg.GetString("vncHost"),
 				Port:     that.cfg.GetInt("vncPort"),
 				Password: that.cfg.GetBytes("vncPassword"),
 			}
-			timeout := 10 * time.Second
-			network := "tcp"
+			var err error
+			svrSess := session.NewServerSession(
+				rfb.OptDesktopName([]byte("Vprix VNC Proxy")),
+				rfb.OptHeight(768),
+				rfb.OptWidth(1024),
+				rfb.OptSecurityHandlers(securityHandlers...),
+				rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+					return conn, nil
+				}),
+			)
 			cliSess := session.NewClient(
 				rfb.OptSecurityHandlers([]rfb.ISecurityHandler{&security.ClientAuthVNC{Password: targetCfg.Password}}...),
-				rfb.OptGetConn(func() (io.ReadWriteCloser, error) {
-					return net.DialTimeout(network, targetCfg.Addr(), timeout)
+				rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+					return net.DialTimeout(targetCfg.GetNetwork(), targetCfg.Addr(), targetCfg.GetTimeout())
 				}),
 			)
 			p := vnc.NewVncProxy(cliSess, svrSess)
-			p.Start()
+			err = p.Start()
+			if err != nil {
+				glog.Warning(err)
+				return
+			}
+			remoteKey := conn.RemoteAddr().String()
+			that.proxyHub.Set(remoteKey, p)
 			for {
-				err := <-p.Error()
-				logger.Warning(err)
+				select {
+				case err = <-p.Error():
+					glog.Warning(err)
+					that.proxyHub.Remove(remoteKey)
+					return
+				case <-p.Wait():
+					return
+				}
 			}
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)

@@ -61,7 +61,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s", rfb.ClientMessageType(messageType))
+					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s", rfb.ServerMessageType(messageType))
 				}
 				// 判断proxy客户端是否支持该消息
 				msg, ok := serverMessages[messageType]
@@ -79,7 +79,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg)
+					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(parsedMsg.Type()), parsedMsg)
 				}
 				cfg.Output <- parsedMsg
 			}

@@ -130,6 +130,10 @@ func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 	return nil
 }
 
+func (that *Proxy) Wait() <-chan struct{} {
+	return that.closed
+}
+
 func (that *Proxy) Close() {
 	that.closed <- struct{}{}
 }

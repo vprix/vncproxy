@@ -39,7 +39,6 @@ func ReadBytes(count int, r io.Reader) ([]byte, error) {
 	buff := dbuffer.GetByteBuffer()
 	defer dbuffer.ReleaseByteBuffer(buff)
 	buff.ChangeLen(count)
-
 	lengthRead, err := io.ReadFull(r, buff.B)
 
 	if lengthRead != count {

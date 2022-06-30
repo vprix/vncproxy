@@ -11,6 +11,7 @@ import (
 	"github.com/vprix/vncproxy/session"
 	"io"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Player struct {
 	svrSession    *session.ServerSession // vnc客户端连接到proxy的会话
 	playerSession *session.PlayerSession
 	errorCh       chan error
+	syncOnce      sync.Once
 }
 
 func NewPlayer(filePath string, svrSession *session.ServerSession) *Player {
@@ -81,32 +83,34 @@ func (that *Player) handleIO() {
 			if logger.IsDebug() {
 				logger.Debugf("收到vnc客户端发送过来的消息,%s", msg)
 			}
-		default:
-			// 从会话中读取消息类型
-			var messageType rfb.ServerMessageType
-			if err := binary.Read(that.playerSession, binary.BigEndian, &messageType); err != nil {
-				that.errorCh <- err
-				return
-			}
-			msg := &messages.FramebufferUpdate{}
-			// 读取消息内容
-			parsedMsg, err := msg.Read(that.playerSession)
-			if err != nil {
-				that.errorCh <- err
-				return
-			}
-			that.svrSession.Options().Input <- parsedMsg
-			//err = parsedMsg.Write(that.svrSession)
-			//if err != nil {
-			//	that.errorCh <- err
-			//	return
-			//}
-			var sleep int64
-			_ = binary.Read(that.playerSession, binary.BigEndian, &sleep)
-			if sleep > 0 {
-				time.Sleep(time.Duration(sleep))
+			if msg.Type() == rfb.MessageType(rfb.FramebufferUpdateRequest) {
+				that.syncOnce.Do(func() {
+					go that.readRbs()
+				})
 			}
 		}
+	}
+}
+
+func (that *Player) readRbs() {
+	// 从会话中读取消息类型
+	var messageType rfb.ServerMessageType
+	if err := binary.Read(that.playerSession, binary.BigEndian, &messageType); err != nil {
+		that.errorCh <- err
+		return
+	}
+	msg := &messages.FramebufferUpdate{}
+	// 读取消息内容
+	parsedMsg, err := msg.Read(that.playerSession)
+	if err != nil {
+		that.errorCh <- err
+		return
+	}
+	that.svrSession.Options().Input <- parsedMsg
+	var sleep int64
+	_ = binary.Read(that.playerSession, binary.BigEndian, &sleep)
+	if sleep > 0 {
+		time.Sleep(time.Duration(sleep))
 	}
 }
 
