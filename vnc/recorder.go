@@ -11,6 +11,7 @@ import (
 
 type Recorder struct {
 	errorCh         chan error
+	closed          chan struct{}
 	cliSession      *session.ClientSession // 链接到vnc服务端的会话
 	recorderSession *session.RecorderSession
 }
@@ -20,6 +21,7 @@ func NewRecorder(recorderSess *session.RecorderSession, cliSession *session.Clie
 		recorderSession: recorderSess,
 		cliSession:      cliSession,
 		errorCh:         make(chan error, 32),
+		closed:          make(chan struct{}),
 	}
 	return recorder
 }
@@ -86,15 +88,19 @@ func (that *Recorder) Start() error {
 			return nil
 		case err = <-that.cliSession.Options().ErrorCh:
 			that.errorCh <- err
+			that.Close()
 		case err = <-that.recorderSession.Options().ErrorCh:
 			that.errorCh <- err
+			that.Close()
 		}
 	}
 }
 
+func (that *Recorder) Wait() <-chan struct{} {
+	return that.closed
+}
 func (that *Recorder) Close() {
-	_ = that.cliSession.Close()
-	_ = that.recorderSession.Close()
+	that.closed <- struct{}{}
 }
 
 func (that *Recorder) Error() <-chan error {

@@ -5,6 +5,7 @@ import (
 	"github.com/gogf/gf/os/gcfg"
 	"github.com/gogf/gf/os/glog"
 	"github.com/osgochina/dmicro/drpc"
+	"github.com/osgochina/dmicro/drpc/status"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
@@ -66,18 +67,39 @@ func (that *TcpSandBox) Setup() error {
 			}
 			return err
 		}
-		svrSession := session.NewServerSession(
-			rfb.OptSecurityHandlers(securityHandlers...),
-			rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
-				return conn, nil
-			}),
-		)
-		play := vnc.NewPlayer(that.cfg.GetString("rbsFile"), svrSession)
-		_ = play.Start()
-		for {
-			err = <-play.Error()
-			glog.Warning(err)
-		}
+		go func(c net.Conn) {
+			defer func() {
+				//捕获错误，并且继续执行
+				if p := recover(); p != nil {
+					err = fmt.Errorf("panic:%v\n%s", p, status.PanicStackTrace())
+				}
+			}()
+			svrSession := session.NewServerSession(
+				rfb.OptSecurityHandlers(securityHandlers...),
+				rfb.OptGetConn(func(sess rfb.ISession) (io.ReadWriteCloser, error) {
+					return c, nil
+				}),
+			)
+			play := vnc.NewPlayer(that.cfg.GetString("rbsFile"), svrSession)
+			err = play.Start()
+			if err != nil {
+				glog.Warning(err)
+				return
+			}
+			for {
+				select {
+				case err = <-play.Error():
+					glog.Warning(err)
+					return
+				case <-that.closed:
+					play.Close()
+					return
+				case <-play.Wait():
+					return
+				}
+			}
+		}(conn)
+
 	}
 }
 

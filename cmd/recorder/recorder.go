@@ -100,7 +100,14 @@ func (that *RecorderSandBox) Setup() error {
 			logger.Fatal(err)
 		}
 	}()
-	return nil
+	for {
+		select {
+		case err := <-that.recorder.Error():
+			logger.Error(err)
+		case <-that.recorder.Wait():
+			return nil
+		}
+	}
 }
 
 func (that *RecorderSandBox) Shutdown() error {

@@ -19,6 +19,7 @@ type Player struct {
 	svrSession    *session.ServerSession // vnc客户端连接到proxy的会话
 	playerSession *session.PlayerSession
 	errorCh       chan error
+	closed        chan struct{}
 	syncOnce      sync.Once
 }
 
@@ -36,13 +37,14 @@ func NewPlayer(filePath string, svrSession *session.ServerSession) *Player {
 		errorCh:       make(chan error, 32),
 		svrSession:    svrSession,
 		playerSession: playerSession,
+		closed:        make(chan struct{}),
 	}
 }
 
 // Start 启动
 func (that *Player) Start() error {
 
-	_ = that.svrSession.Init(rfb.OptHandlers([]rfb.IHandler{
+	err := that.svrSession.Init(rfb.OptHandlers([]rfb.IHandler{
 		&handler.ServerVersionHandler{},
 		&handler.ServerSecurityHandler{},
 		that, // 把链接到vnc服务端的逻辑加入
@@ -50,6 +52,9 @@ func (that *Player) Start() error {
 		&handler.ServerServerInitHandler{},
 		&handler.ServerMessageHandler{},
 	}...))
+	if err != nil {
+		return err
+	}
 
 	that.svrSession.Start()
 	return nil
@@ -77,8 +82,13 @@ func (that *Player) handleIO() {
 			return
 		case err := <-that.svrSession.Options().ErrorCh:
 			that.errorCh <- err
+			that.Close()
 		case err := <-that.playerSession.Options().ErrorCh:
 			that.errorCh <- err
+			that.Close()
+		case <-that.closed:
+			_ = that.svrSession.Close()
+			_ = that.playerSession.Close()
 		case msg := <-that.svrSession.Options().Output:
 			if logger.IsDebug() {
 				logger.Debugf("收到vnc客户端发送过来的消息,%s", msg)
@@ -93,30 +103,41 @@ func (that *Player) handleIO() {
 }
 
 func (that *Player) readRbs() {
-	// 从会话中读取消息类型
-	var messageType rfb.ServerMessageType
-	if err := binary.Read(that.playerSession, binary.BigEndian, &messageType); err != nil {
-		that.errorCh <- err
-		return
+	for {
+		select {
+		case <-that.closed:
+			return
+		default:
+			// 从会话中读取消息类型
+			var messageType rfb.ServerMessageType
+			if err := binary.Read(that.playerSession, binary.BigEndian, &messageType); err != nil {
+				that.playerSession.Options().ErrorCh <- err
+				return
+			}
+			msg := &messages.FramebufferUpdate{}
+			// 读取消息内容
+			parsedMsg, err := msg.Read(that.playerSession)
+			if err != nil {
+				that.playerSession.Options().ErrorCh <- err
+				return
+			}
+			that.svrSession.Options().Input <- parsedMsg
+			var sleep int64
+			_ = binary.Read(that.playerSession, binary.BigEndian, &sleep)
+			if sleep > 0 {
+				time.Sleep(time.Duration(sleep))
+			}
+		}
 	}
-	msg := &messages.FramebufferUpdate{}
-	// 读取消息内容
-	parsedMsg, err := msg.Read(that.playerSession)
-	if err != nil {
-		that.errorCh <- err
-		return
-	}
-	that.svrSession.Options().Input <- parsedMsg
-	var sleep int64
-	_ = binary.Read(that.playerSession, binary.BigEndian, &sleep)
-	if sleep > 0 {
-		time.Sleep(time.Duration(sleep))
-	}
+
+}
+
+func (that *Player) Wait() <-chan struct{} {
+	return that.closed
 }
 
 func (that *Player) Close() {
-	_ = that.svrSession.Close()
-	_ = that.playerSession.Close()
+	that.closed <- struct{}{}
 }
 
 func (that *Player) Error() <-chan error {

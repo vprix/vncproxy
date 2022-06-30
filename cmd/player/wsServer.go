@@ -61,10 +61,19 @@ func (that *WSSandBox) Setup() error {
 				}),
 			)
 			play := vnc.NewPlayer(that.cfg.GetString("rfbFile"), svrSession)
-			_ = play.Start()
-			for {
-				err := <-play.Error()
+			err := play.Start()
+			if err != nil {
 				glog.Warning(err)
+				return
+			}
+			for {
+				select {
+				case err = <-play.Error():
+					glog.Warning(err)
+					return
+				case <-play.Wait():
+					return
+				}
 			}
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)

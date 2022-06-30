@@ -107,7 +107,7 @@ func (that *PlayerSession) Start() {
 		that.options.ErrorCh <- err
 		return
 	}
-	that.SetHeight(fbWeight)
+	that.SetHeight(fbHeight)
 
 	var pixelFormat rfb.PixelFormat
 	err = binary.Read(that.br, binary.BigEndian, &pixelFormat)
