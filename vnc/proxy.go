@@ -64,8 +64,8 @@ func (that *Proxy) handleIO() {
 			sSessCfg := that.svrSession.Options()
 			disabled := false
 			// 如果该消息禁用，则跳过不转发该消息
-			for _, t := range sSessCfg.DisableMessageType {
-				if t == msg.Type() {
+			for _, t := range sSessCfg.DisableServerMessageType {
+				if rfb.MessageType(t) == msg.Type() {
 					disabled = true
 					break
 				}
@@ -99,8 +99,8 @@ func (that *Proxy) handleIO() {
 			default:
 				cliCfg := that.remoteSession.Options()
 				disabled := false
-				for _, t := range cliCfg.DisableMessageType {
-					if t == msg.Type() {
+				for _, t := range cliCfg.DisableClientMessageType {
+					if rfb.MessageType(t) == msg.Type() {
 						disabled = true
 						break
 					}

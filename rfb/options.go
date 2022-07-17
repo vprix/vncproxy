@@ -8,17 +8,18 @@ type GetConn func(sess ISession) (io.ReadWriteCloser, error)
 // Options 配置信息
 type Options struct {
 	// 公共配置
-	Handlers           []IHandler         //  处理程序列表
-	SecurityHandlers   []ISecurityHandler // 安全验证
-	Encodings          []IEncoding        // 支持的编码类型
-	PixelFormat        PixelFormat        // 像素格式
-	ColorMap           ColorMap           // 颜色地图
-	Input              chan Message       // 输入消息
-	Output             chan Message       // 输出消息
-	Messages           []Message          // 支持的消息类型
-	DisableMessageType []MessageType      // 禁用的消息，碰到这些消息，则跳过
-	QuitCh             chan struct{}      // 退出
-	ErrorCh            chan error         // 错误通道
+	Handlers                 []IHandler          //  处理程序列表
+	SecurityHandlers         []ISecurityHandler  // 安全验证
+	Encodings                []IEncoding         // 支持的编码类型
+	PixelFormat              PixelFormat         // 像素格式
+	ColorMap                 ColorMap            // 颜色地图
+	Input                    chan Message        // 输入消息
+	Output                   chan Message        // 输出消息
+	Messages                 []Message           // 支持的消息类型
+	DisableServerMessageType []ServerMessageType // 禁用的消息，碰到这些消息，则跳过
+	DisableClientMessageType []ClientMessageType // 禁用的消息，碰到这些消息，则跳过
+	QuitCh                   chan struct{}       // 退出
+	ErrorCh                  chan error          // 错误通道
 
 	// 服务端配置
 	DesktopName []byte // 桌面名称，作为服务端配置的时候，需要设置
@@ -92,9 +93,16 @@ func OptWidth(opt int) Option {
 	}
 }
 
-// OptDisableMessageType 设置要屏蔽的方法
-func OptDisableMessageType(opt ...MessageType) Option {
+// OptDisableServerMessageType 要屏蔽的服务端消息
+func OptDisableServerMessageType(opt ...ServerMessageType) Option {
 	return func(options *Options) {
-		options.DisableMessageType = opt
+		options.DisableServerMessageType = opt
+	}
+}
+
+// OptDisableClientMessageType 要屏蔽的客户端消息
+func OptDisableClientMessageType(opt ...ClientMessageType) Option {
+	return func(options *Options) {
+		options.DisableClientMessageType = opt
 	}
 }
