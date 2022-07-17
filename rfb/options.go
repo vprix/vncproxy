@@ -91,3 +91,10 @@ func OptWidth(opt int) Option {
 		options.Width = uint16(opt)
 	}
 }
+
+// OptDisableMessageType 设置要屏蔽的方法
+func OptDisableMessageType(opt ...MessageType) Option {
+	return func(options *Options) {
+		options.DisableMessageType = opt
+	}
+}
