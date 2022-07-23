@@ -114,6 +114,7 @@ func (that *TcpSandBox) Setup() error {
 				select {
 				case err = <-p.Error():
 					glog.Warning(err)
+					p.Close()
 					that.proxyHub.Remove(remoteKey)
 					return
 				case <-that.closed:

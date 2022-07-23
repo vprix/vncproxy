@@ -76,6 +76,8 @@ func (that *Player) Handle(sess rfb.ISession) error {
 func (that *Player) handleIO() {
 	for {
 		select {
+		case <-that.Wait():
+			return
 		case <-that.svrSession.Wait():
 			return
 		case <-that.playerSession.Wait():

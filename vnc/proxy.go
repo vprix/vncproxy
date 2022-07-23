@@ -49,9 +49,10 @@ func (that *Proxy) Start() error {
 }
 
 func (that *Proxy) handleIO() {
-
 	for {
 		select {
+		case <-that.Wait():
+			return
 		case msg := <-that.remoteSession.Options().ErrorCh:
 			// 如果链接到vnc服务端的会话报错，则需要把链接到proxy的vnc客户端全部关闭
 			_ = that.svrSession.Close()
@@ -79,7 +80,6 @@ func (that *Proxy) handleIO() {
 			switch rfb.ClientMessageType(msg.Type()) {
 			case rfb.SetPixelFormat:
 				// 发现是设置像素格式的消息，则忽略
-				//that.rfbCliCfg.PixelFormat = msg.(*messages.SetPixelFormat).PF
 				that.remoteSession.SetPixelFormat(msg.(*messages.SetPixelFormat).PF)
 				that.remoteSession.Options().Input <- msg
 				continue

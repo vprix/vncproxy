@@ -25,7 +25,7 @@ func (that *CursorWithAlphaPseudoEncoding) Clone(data ...bool) rfb.IEncoding {
 }
 
 func (that *CursorWithAlphaPseudoEncoding) Type() rfb.EncodingType {
-	return rfb.EncCursorPseudo
+	return rfb.EncCursorWithAlphaPseudo
 }
 
 func (that *CursorWithAlphaPseudoEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error {

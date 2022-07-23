@@ -20,6 +20,8 @@ var (
 		&ExtendedDesktopSizePseudo{},
 		&CursorWithAlphaPseudoEncoding{},
 		&LedStatePseudo{},
+		&LastRectPseudo{},
+		&FencePseudo{},
 		&XCursorPseudoEncoding{},
 	}
 )
