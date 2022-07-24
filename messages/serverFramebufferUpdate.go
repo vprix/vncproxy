@@ -54,6 +54,7 @@ func (that *FramebufferUpdate) Read(session rfb.ISession) (rfb.Message, error) {
 			if logger.IsDebug() {
 				logger.Debugf("读取第 %d 个矩形成功，但是是最后一帧:EncLastRectPseudo", i)
 			}
+			msg.Rects = append(msg.Rects, rect)
 			break
 		}
 		//if rect.EncType == rfb.EncDesktopSizePseudo {
