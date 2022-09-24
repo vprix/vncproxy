@@ -18,6 +18,7 @@ const (
 	EncUltra2                        EncodingType = 10
 	EncTRLE                          EncodingType = 15 //图块游程编码
 	EncZRLE                          EncodingType = 16 //zlib 压缩的游程编码
+	EncH264                          EncodingType = 20
 	EncJPEG                          EncodingType = 21
 	EncJRLE                          EncodingType = 22
 	EncAtenAST2100                   EncodingType = 87

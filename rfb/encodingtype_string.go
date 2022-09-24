@@ -20,6 +20,7 @@ func _() {
 	_ = x[EncUltra2-10]
 	_ = x[EncTRLE-15]
 	_ = x[EncZRLE-16]
+	_ = x[EncH264-20]
 	_ = x[EncJPEG-21]
 	_ = x[EncJRLE-22]
 	_ = x[EncAtenAST2100-87]
@@ -77,7 +78,7 @@ func _() {
 	_ = x[EncOffscreenCopyRect-1464686206]
 }
 
-const _EncodingType_name = "EncExtendedClipboardPseudoEncCursorWithAlphaPseudoEncContinuousUpdatesPseudoEncFencePseudoEncClientRedirectEncXvpPseudoEncExtendedDesktopSizePseudoEncDesktopNamePseudoEncLedStatePseudoEncTightPngEncQEMUExtendedKeyEventPseudoEncQEMUPointerMotionChangePseudoEncCompressionLevel1EncCompressionLevel2EncCompressionLevel3EncCompressionLevel4EncCompressionLevel5EncCompressionLevel6EncCompressionLevel7EncCompressionLevel8EncCompressionLevel9EncCompressionLevel10EncXCursorPseudoEncCursorPseudoEncPointerPosPseudoEncLastRectPseudoEncDesktopSizePseudoEncJPEGQualityLevelPseudo1EncJPEGQualityLevelPseudo2EncJPEGQualityLevelPseudo3EncJPEGQualityLevelPseudo4EncJPEGQualityLevelPseudo5EncJPEGQualityLevelPseudo6EncJPEGQualityLevelPseudo7EncJPEGQualityLevelPseudo8EncJPEGQualityLevelPseudo9EncJPEGQualityLevelPseudo10EncRawEncCopyRectEncRREEncCoRREEncHexTileEncZlibEncTightEncZlibHexEncUltra1EncUltra2EncTRLEEncZRLEEncJPEGEncJRLEEncAtenAST2100EncAtenASTJPEGEncAtenHermonEncAtenYarkonEncAtenPilot3EncTightPNGBase64EncTightDiffCompEncVMWDefineCursorEncVMWCursorStateEncVMWCursorPositionEncVMWTypematicInfoEncVMWLEDStateEncVMWServerCapsEncVMWServerPush2EncVMWFrameStampEncOffscreenCopyRect"
+const _EncodingType_name = "EncExtendedClipboardPseudoEncCursorWithAlphaPseudoEncContinuousUpdatesPseudoEncFencePseudoEncClientRedirectEncXvpPseudoEncExtendedDesktopSizePseudoEncDesktopNamePseudoEncLedStatePseudoEncTightPngEncQEMUExtendedKeyEventPseudoEncQEMUPointerMotionChangePseudoEncCompressionLevel1EncCompressionLevel2EncCompressionLevel3EncCompressionLevel4EncCompressionLevel5EncCompressionLevel6EncCompressionLevel7EncCompressionLevel8EncCompressionLevel9EncCompressionLevel10EncXCursorPseudoEncCursorPseudoEncPointerPosPseudoEncLastRectPseudoEncDesktopSizePseudoEncJPEGQualityLevelPseudo1EncJPEGQualityLevelPseudo2EncJPEGQualityLevelPseudo3EncJPEGQualityLevelPseudo4EncJPEGQualityLevelPseudo5EncJPEGQualityLevelPseudo6EncJPEGQualityLevelPseudo7EncJPEGQualityLevelPseudo8EncJPEGQualityLevelPseudo9EncJPEGQualityLevelPseudo10EncRawEncCopyRectEncRREEncCoRREEncHexTileEncZlibEncTightEncZlibHexEncUltra1EncUltra2EncTRLEEncZRLEEncH264EncJPEGEncJRLEEncAtenAST2100EncAtenASTJPEGEncAtenHermonEncAtenYarkonEncAtenPilot3EncTightPNGBase64EncTightDiffCompEncVMWDefineCursorEncVMWCursorStateEncVMWCursorPositionEncVMWTypematicInfoEncVMWLEDStateEncVMWServerCapsEncVMWServerPush2EncVMWFrameStampEncOffscreenCopyRect"
 
 var _EncodingType_map = map[EncodingType]string{
 	-1063131698: _EncodingType_name[0:26],
@@ -129,24 +130,25 @@ var _EncodingType_map = map[EncodingType]string{
 	10:          _EncodingType_name[880:889],
 	15:          _EncodingType_name[889:896],
 	16:          _EncodingType_name[896:903],
-	21:          _EncodingType_name[903:910],
-	22:          _EncodingType_name[910:917],
-	87:          _EncodingType_name[917:931],
-	88:          _EncodingType_name[931:945],
-	89:          _EncodingType_name[945:958],
-	90:          _EncodingType_name[958:971],
-	91:          _EncodingType_name[971:984],
-	1464686101:  _EncodingType_name[984:1001],
-	1464686102:  _EncodingType_name[1001:1017],
-	1464686180:  _EncodingType_name[1017:1035],
-	1464686181:  _EncodingType_name[1035:1052],
-	1464686182:  _EncodingType_name[1052:1072],
-	1464686183:  _EncodingType_name[1072:1091],
-	1464686184:  _EncodingType_name[1091:1105],
-	1464686202:  _EncodingType_name[1105:1121],
-	1464686203:  _EncodingType_name[1121:1138],
-	1464686204:  _EncodingType_name[1138:1154],
-	1464686206:  _EncodingType_name[1154:1174],
+	20:          _EncodingType_name[903:910],
+	21:          _EncodingType_name[910:917],
+	22:          _EncodingType_name[917:924],
+	87:          _EncodingType_name[924:938],
+	88:          _EncodingType_name[938:952],
+	89:          _EncodingType_name[952:965],
+	90:          _EncodingType_name[965:978],
+	91:          _EncodingType_name[978:991],
+	1464686101:  _EncodingType_name[991:1008],
+	1464686102:  _EncodingType_name[1008:1024],
+	1464686180:  _EncodingType_name[1024:1042],
+	1464686181:  _EncodingType_name[1042:1059],
+	1464686182:  _EncodingType_name[1059:1079],
+	1464686183:  _EncodingType_name[1079:1098],
+	1464686184:  _EncodingType_name[1098:1112],
+	1464686202:  _EncodingType_name[1112:1128],
+	1464686203:  _EncodingType_name[1128:1145],
+	1464686204:  _EncodingType_name[1145:1161],
+	1464686206:  _EncodingType_name[1161:1181],
 }
 
 func (i EncodingType) String() string {
