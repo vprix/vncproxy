@@ -29,9 +29,6 @@ func (that *CursorWithAlphaPseudoEncoding) Type() rfb.EncodingType {
 }
 
 func (that *CursorWithAlphaPseudoEncoding) Read(session rfb.ISession, rect *rfb.Rectangle) error {
-	if rect.Width*rect.Height == 0 {
-		return nil
-	}
 	if that.buff == nil {
 		that.buff = &bytes.Buffer{}
 	}
@@ -42,6 +39,14 @@ func (that *CursorWithAlphaPseudoEncoding) Read(session rfb.ISession, rect *rfb.
 		return err
 	}
 	_, _ = that.buff.Write(bt)
+
+	if rect.Width*rect.Height > 0 {
+		bt2, err := ReadBytes(int(rect.Width*rect.Height)*4, session)
+		if err != nil {
+			return err
+		}
+		_, _ = that.buff.Write(bt2)
+	}
 	return nil
 }
 
