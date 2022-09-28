@@ -23,15 +23,21 @@ func (*ServerServerInitHandler) Handle(session rfb.ISession) error {
 	if err := binary.Write(session, binary.BigEndian, session.Options().PixelFormat); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, uint32(len(session.Options().DesktopName))); err != nil {
+	desktopName := session.Options().DesktopName
+	size := uint32(len(session.Options().DesktopName))
+	if size == 0 {
+		desktopName = []byte("vprix")
+		size = uint32(len(desktopName))
+	}
+	if err := binary.Write(session, binary.BigEndian, size); err != nil {
 		return err
 	}
-	if err := binary.Write(session, binary.BigEndian, session.Options().DesktopName); err != nil {
+	if err := binary.Write(session, binary.BigEndian, desktopName); err != nil {
 		return err
 	}
 	if logger.IsDebug() {
 		logger.Debugf("[Proxy服务端->VNC客户端]: ServerInit[Width:%d,Height:%d,PixelFormat:%s,DesktopName:%s]",
-			session.Options().Width, session.Options().Height, session.Options().PixelFormat, session.Options().DesktopName)
+			session.Options().Width, session.Options().Height, session.Options().PixelFormat, desktopName)
 	}
 	return session.Flush()
 }
