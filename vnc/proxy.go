@@ -123,7 +123,11 @@ func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 	that.svrSession = sess.(*session.ServerSession)
 	that.svrSession.SetWidth(that.remoteSession.Options().Width)
 	that.svrSession.SetHeight(that.remoteSession.Options().Height)
-	that.svrSession.SetDesktopName(that.remoteSession.Options().DesktopName)
+	desktopName := that.remoteSession.Options().DesktopName
+	if len(desktopName) <= 0 {
+		desktopName = []byte("vprix")
+	}
+	that.svrSession.SetDesktopName(desktopName)
 	that.svrSession.SetPixelFormat(that.remoteSession.Options().PixelFormat)
 
 	go that.handleIO()
