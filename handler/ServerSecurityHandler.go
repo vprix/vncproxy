@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
@@ -15,7 +16,7 @@ type ServerSecurityHandler struct{}
 
 func (*ServerSecurityHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debugf("[VNC客户端->Proxy服务端]: 执行vnc握手第二步:[Security]")
+		logger.Debugf(context.TODO(), "[VNC客户端->Proxy服务端]: 执行vnc握手第二步:[Security]")
 	}
 	cfg := session.Options()
 	var secType rfb.SecurityType

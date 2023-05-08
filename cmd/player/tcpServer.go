@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogf/gf/os/gcfg"
-	"github.com/gogf/gf/os/glog"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/glog"
 	"github.com/osgochina/dmicro/drpc"
 	"github.com/osgochina/dmicro/drpc/status"
 	"github.com/osgochina/dmicro/easyservice"
@@ -11,6 +11,7 @@ import (
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
 	"github.com/vprix/vncproxy/vnc"
+	"golang.org/x/net/context"
 	"io"
 	"net"
 )
@@ -47,15 +48,15 @@ func (that *TcpSandBox) Name() string {
 
 func (that *TcpSandBox) Setup() error {
 	var err error
-	addr := fmt.Sprintf("%s:%d", that.cfg.GetString("tcpHost"), that.cfg.GetInt("tcpPort"))
+	addr := fmt.Sprintf("%s:%d", that.cfg.MustGet(context.TODO(), "tcpHost"), that.cfg.MustGet(context.TODO(), "tcpPort"))
 	that.lis, err = net.Listen("tcp", addr)
 	if err != nil {
-		glog.Fatalf("Error listen. %v", err)
+		glog.Fatalf(context.TODO(), "Error listen. %v", err)
 	}
-	fmt.Printf("Tcp proxy started! listening %s . vnc server %s:%d\n", that.lis.Addr().String(), that.cfg.GetString("vncHost"), that.cfg.GetInt("vncPort"))
+	fmt.Printf("Tcp proxy started! listening %s . vnc server %s:%d\n", that.lis.Addr().String(), that.cfg.MustGet(context.TODO(), "vncHost"), that.cfg.MustGet(context.TODO(), "vncPort"))
 	securityHandlers := []rfb.ISecurityHandler{&security.ServerAuthNone{}}
-	if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-		securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+	if len(that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()) > 0 {
+		securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()})
 	}
 	for {
 		conn, err := that.lis.Accept()
@@ -80,16 +81,16 @@ func (that *TcpSandBox) Setup() error {
 					return c, nil
 				}),
 			)
-			play := vnc.NewPlayer(that.cfg.GetString("rbsFile"), svrSession)
+			play := vnc.NewPlayer(that.cfg.MustGet(context.TODO(), "rbsFile").String(), svrSession)
 			err = play.Start()
 			if err != nil {
-				glog.Warning(err)
+				glog.Warning(context.TODO(), err)
 				return
 			}
 			for {
 				select {
 				case err = <-play.Error():
-					glog.Warning(err)
+					glog.Warning(context.TODO(), err)
 					return
 				case <-that.closed:
 					play.Close()

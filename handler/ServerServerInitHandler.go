@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
@@ -12,7 +13,7 @@ type ServerServerInitHandler struct{}
 
 func (*ServerServerInitHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debugf("[Proxy服务端->VNC客户端]: 执行vnc握手第四步:[ServerInit]")
+		logger.Debugf(context.TODO(), "[Proxy服务端->VNC客户端]: 执行vnc握手第四步:[ServerInit]")
 	}
 	if err := binary.Write(session, binary.BigEndian, session.Options().Width); err != nil {
 		return err
@@ -36,7 +37,7 @@ func (*ServerServerInitHandler) Handle(session rfb.ISession) error {
 		return err
 	}
 	if logger.IsDebug() {
-		logger.Debugf("[Proxy服务端->VNC客户端]: ServerInit[Width:%d,Height:%d,PixelFormat:%s,DesktopName:%s]",
+		logger.Debugf(context.TODO(), "[Proxy服务端->VNC客户端]: ServerInit[Width:%d,Height:%d,PixelFormat:%s,DesktopName:%s]",
 			session.Options().Width, session.Options().Height, session.Options().PixelFormat, desktopName)
 	}
 	return session.Flush()

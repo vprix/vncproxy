@@ -3,7 +3,7 @@ package session
 import (
 	"bufio"
 	"encoding/binary"
-	"github.com/gogf/gf/container/gmap"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
@@ -152,7 +152,7 @@ func (that *RecorderSession) Encodings() []rfb.IEncoding {
 }
 
 // SetEncodings 设置编码格式
-func (that *RecorderSession) SetEncodings(encs []rfb.EncodingType) error {
+func (that *RecorderSession) SetEncodings(_ []rfb.EncodingType) error {
 	return nil
 }
 
@@ -171,7 +171,7 @@ func (that *RecorderSession) SecurityHandler() rfb.ISecurityHandler {
 }
 
 // SetSecurityHandler 设置安全认证处理方法
-func (that *RecorderSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) {
+func (that *RecorderSession) SetSecurityHandler(_ rfb.ISecurityHandler) {
 }
 
 // NewEncoding 通过编码类型判断是否支持编码对象
@@ -185,7 +185,7 @@ func (that *RecorderSession) NewEncoding(typ rfb.EncodingType) rfb.IEncoding {
 }
 
 // Read 从链接中读取数据
-func (that *RecorderSession) Read(buf []byte) (int, error) {
+func (that *RecorderSession) Read(_ []byte) (int, error) {
 	return 0, nil
 }
 

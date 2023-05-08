@@ -1,7 +1,7 @@
 package vnc
 
 import (
-	"github.com/gogf/gf/util/gconv"
+	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"

@@ -1,9 +1,10 @@
 package vnc
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/gogf/gf/os/gfile"
+	"github.com/gogf/gf/v2/os/gfile"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"
@@ -93,7 +94,7 @@ func (that *Player) handleIO() {
 			_ = that.playerSession.Close()
 		case msg := <-that.svrSession.Options().Output:
 			if logger.IsDebug() {
-				logger.Debugf("收到vnc客户端发送过来的消息,%s", msg)
+				logger.Debugf(context.TODO(), "收到vnc客户端发送过来的消息,%s", msg)
 			}
 			if msg.Type() == rfb.MessageType(rfb.FramebufferUpdateRequest) {
 				that.syncOnce.Do(func() {

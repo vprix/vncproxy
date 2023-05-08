@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/gogf/gf/container/gmap"
-	"github.com/gogf/gf/frame/g"
-	"github.com/gogf/gf/net/ghttp"
-	"github.com/gogf/gf/os/gcfg"
-	"github.com/gogf/gf/os/glog"
+	"github.com/gogf/gf/v2/container/gmap"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/glog"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
@@ -50,19 +51,19 @@ func (that *WSSandBox) Name() string {
 func (that *WSSandBox) Setup() error {
 
 	that.svr = g.Server()
-	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
+	that.svr.BindHandler(that.cfg.MustGet(context.TODO(), "wsPath", "/").String(), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
 			securityHandlers := []rfb.ISecurityHandler{
 				&security.ServerAuthNone{},
 			}
-			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-				securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")})
+			if len(that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()) > 0 {
+				securityHandlers = append(securityHandlers, &security.ServerAuthVNC{Password: that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()})
 			}
 			targetCfg := rfb.TargetConfig{
-				Host:     that.cfg.GetString("vncHost"),
-				Port:     that.cfg.GetInt("vncPort"),
-				Password: that.cfg.GetBytes("vncPassword"),
+				Host:     that.cfg.MustGet(context.TODO(), "vncHost").String(),
+				Port:     that.cfg.MustGet(context.TODO(), "vncPort").Int(),
+				Password: that.cfg.MustGet(context.TODO(), "vncPassword").Bytes(),
 			}
 			var err error
 			svrSess := session.NewServerSession(
@@ -83,7 +84,7 @@ func (that *WSSandBox) Setup() error {
 			p := vnc.NewVncProxy(cliSess, svrSess)
 			err = p.Start()
 			if err != nil {
-				glog.Warning(err)
+				glog.Warning(context.TODO(), err)
 				return
 			}
 			remoteKey := conn.RemoteAddr().String()
@@ -91,7 +92,7 @@ func (that *WSSandBox) Setup() error {
 			for {
 				select {
 				case err = <-p.Error():
-					glog.Warning(err)
+					glog.Warning(context.TODO(), err)
 					that.proxyHub.Remove(remoteKey)
 					return
 				case <-p.Wait():
@@ -101,7 +102,7 @@ func (that *WSSandBox) Setup() error {
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})
-	that.svr.SetAddr(fmt.Sprintf("%s:%d", that.cfg.GetString("wsHost"), that.cfg.GetInt("wsPort")))
+	that.svr.SetAddr(fmt.Sprintf("%s:%d", that.cfg.MustGet(context.TODO(), "wsHost").String(), that.cfg.MustGet(context.TODO(), "wsPort").Int()))
 	return that.svr.Start()
 }
 

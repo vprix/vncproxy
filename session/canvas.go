@@ -1,7 +1,7 @@
 package session
 
 import (
-	"github.com/gogf/gf/container/gmap"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/vprix/vncproxy/canvas"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
@@ -121,7 +121,7 @@ func (that *CanvasSession) SecurityHandler() rfb.ISecurityHandler {
 }
 
 // SetSecurityHandler 设置安全认证处理方法
-func (that *CanvasSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) {
+func (that *CanvasSession) SetSecurityHandler(_ rfb.ISecurityHandler) {
 }
 
 // NewEncoding 通过编码类型判断是否支持编码对象

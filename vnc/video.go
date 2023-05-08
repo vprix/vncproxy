@@ -1,6 +1,7 @@
 package vnc
 
 import (
+	"context"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
@@ -101,7 +102,7 @@ func (that *Video) Start() error {
 	for {
 		select {
 		case msg := <-that.cliCfg.Output:
-			logger.Debugf("client message received.messageType:%d,message:%s", msg.Type(), msg)
+			logger.Debugf(context.TODO(), "client message received.messageType:%d,message:%s", msg.Type(), msg)
 		case msg := <-that.cliCfg.Input:
 			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.canvasSession)

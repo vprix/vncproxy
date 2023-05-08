@@ -91,7 +91,7 @@ func (that *Screenshot) GetImage() (io.ReadWriteCloser, error) {
 				return that.canvasSession.Conn(), err
 			}
 			if logger.IsDebug() {
-				logger.Debugf("获取到来自vnc服务端的消息%v", msg)
+				logger.Debugf(context.TODO(), "获取到来自vnc服务端的消息%v", msg)
 			}
 		}
 	}

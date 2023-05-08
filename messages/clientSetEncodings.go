@@ -3,7 +3,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/gogf/gf/text/gstr"
+	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/vprix/vncproxy/rfb"
 )
 
@@ -21,7 +21,7 @@ func (that *SetEncodings) Clone() rfb.Message {
 	}
 	return c
 }
-func (that *SetEncodings) Supported(session rfb.ISession) bool {
+func (that *SetEncodings) Supported(_ rfb.ISession) bool {
 	return true
 }
 

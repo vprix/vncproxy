@@ -3,7 +3,7 @@ package session
 import (
 	"bufio"
 	"encoding/binary"
-	"github.com/gogf/gf/container/gmap"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
@@ -158,7 +158,7 @@ func (that *PlayerSession) Encodings() []rfb.IEncoding {
 }
 
 // SetEncodings 设置编码格式
-func (that *PlayerSession) SetEncodings(encs []rfb.EncodingType) error {
+func (that *PlayerSession) SetEncodings(_ []rfb.EncodingType) error {
 
 	return nil
 }
@@ -178,7 +178,7 @@ func (that *PlayerSession) SecurityHandler() rfb.ISecurityHandler {
 }
 
 // SetSecurityHandler 设置安全认证处理方法
-func (that *PlayerSession) SetSecurityHandler(securityHandler rfb.ISecurityHandler) {
+func (that *PlayerSession) SetSecurityHandler(_ rfb.ISecurityHandler) {
 }
 
 // NewEncoding 通过编码类型判断是否支持编码对象

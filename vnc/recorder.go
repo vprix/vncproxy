@@ -1,8 +1,9 @@
 package vnc
 
 import (
+	"context"
 	"encoding/binary"
-	"github.com/gogf/gf/os/gtime"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/messages"
 	"github.com/vprix/vncproxy/rfb"
@@ -58,7 +59,7 @@ func (that *Recorder) Start() error {
 	for {
 		select {
 		case msg := <-that.recorderSession.Options().Output:
-			logger.Debugf("client message received.messageType:%d,message:%s", msg.Type(), msg)
+			logger.Debugf(context.TODO(), "client message received.messageType:%d,message:%s", msg.Type(), msg)
 		case msg := <-that.cliSession.Options().Output:
 			if rfb.ServerMessageType(msg.Type()) == rfb.FramebufferUpdate {
 				err = msg.Write(that.recorderSession)

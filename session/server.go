@@ -2,7 +2,7 @@ package session
 
 import (
 	"bufio"
-	"github.com/gogf/gf/container/gmap"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"

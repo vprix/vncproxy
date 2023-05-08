@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
@@ -15,7 +16,7 @@ type ServerMessageHandler struct{}
 
 func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debug("[VNC客户端->Proxy服务端]: vnc握手已结束，进入消息交互阶段[ServerMessageHandler]")
+		logger.Debug(context.TODO(), "[VNC客户端->Proxy服务端]: vnc握手已结束，进入消息交互阶段[ServerMessageHandler]")
 	}
 
 	cfg := session.Options()
@@ -35,7 +36,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 			case msg := <-cfg.Input:
 				// 收到proxy服务端消息，则转发写入到vnc客户端会话中。
 				if logger.IsDebug() {
-					logger.Debugf("[Proxy服务端->VNC客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(msg.Type()), msg.String())
+					logger.Debugf(context.TODO(), "[Proxy服务端->VNC客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(msg.Type()), msg.String())
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
@@ -75,7 +76,7 @@ func (*ServerMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC客户端->Proxy服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg.String())
+					logger.Debugf(context.TODO(), "[VNC客户端->Proxy服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(parsedMsg.Type()), parsedMsg.String())
 				}
 
 				cfg.Output <- parsedMsg

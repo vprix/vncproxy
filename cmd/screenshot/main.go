@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/text/gstr"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/gfile"
+	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
@@ -61,40 +63,40 @@ func main() {
 			return true
 		})
 		cfg := svr.Config()
-		rbsFile := svr.CmdParser().GetOptVar("imageFile", "")
+		rbsFile := svr.CmdParser().GetOpt("imageFile", "")
 		if len(rbsFile.String()) <= 0 {
 			svr.Help()
 			os.Exit(0)
 		}
-		vncHost := svr.CmdParser().GetOptVar("vncHost", "")
+		vncHost := svr.CmdParser().GetOpt("vncHost", "")
 		if len(vncHost.String()) <= 0 {
 			svr.Help()
 			os.Exit(0)
 		}
-		vncPort := svr.CmdParser().GetOptVar("vncPort", 0)
+		vncPort := svr.CmdParser().GetOpt("vncPort", 0)
 		if vncPort.Int() <= 0 {
 			svr.Help()
 			os.Exit(0)
 		}
-		_ = cfg.Set("rbsFile", rbsFile.String())
-		_ = cfg.Set("vncHost", vncHost.String())
-		_ = cfg.Set("vncPort", vncPort.Int())
-		_ = cfg.Set("vncPassword", svr.CmdParser().GetOptVar("vncPassword", ""))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("rbsFile", rbsFile.String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncHost", vncHost.String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncPort", vncPort.Int())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncPassword", svr.CmdParser().GetOpt("vncPassword", ""))
 
-		logger.SetDebug(cfg.GetBool("Debug"))
+		logger.SetDebug(cfg.MustGet(context.TODO(), "Debug").Bool())
 
 		v := vnc.NewScreenshot(
 			rfb.TargetConfig{
 				Network:  "tcp",
 				Host:     vncHost.String(),
 				Port:     vncPort.Int(),
-				Password: svr.CmdParser().GetOptVar("vncPassword", "").Bytes(),
+				Password: svr.CmdParser().GetOpt("vncPassword", "").Bytes(),
 				Timeout:  5 * time.Second,
 			},
 		)
 		img, err := v.GetImage()
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatal(context.TODO(), err)
 		}
 
 		j := &bytes.Buffer{}

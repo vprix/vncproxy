@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogf/gf/frame/g"
-	"github.com/gogf/gf/net/ghttp"
-	"github.com/gogf/gf/os/gcfg"
-	"github.com/gogf/gf/os/glog"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/glog"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/vprix/vncproxy/rfb"
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
 	"github.com/vprix/vncproxy/vnc"
+	"golang.org/x/net/context"
 	"golang.org/x/net/websocket"
 	"io"
 )
@@ -46,13 +47,13 @@ func (that *WSSandBox) Name() string {
 func (that *WSSandBox) Setup() error {
 
 	that.svr = g.Server()
-	that.svr.BindHandler(that.cfg.GetString("wsPath", "/"), func(r *ghttp.Request) {
+	that.svr.BindHandler(that.cfg.MustGet(context.TODO(), "wsPath", "/").String(), func(r *ghttp.Request) {
 		h := websocket.Handler(func(conn *websocket.Conn) {
 			conn.PayloadType = websocket.BinaryFrame
 
 			securityHandlers := []rfb.ISecurityHandler{&security.ServerAuthNone{}}
-			if len(that.cfg.GetBytes("proxyPassword")) > 0 {
-				securityHandlers = []rfb.ISecurityHandler{&security.ServerAuthVNC{Password: that.cfg.GetBytes("proxyPassword")}}
+			if len(that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()) > 0 {
+				securityHandlers = []rfb.ISecurityHandler{&security.ServerAuthVNC{Password: that.cfg.MustGet(context.TODO(), "proxyPassword").Bytes()}}
 			}
 			svrSession := session.NewServerSession(
 				rfb.OptSecurityHandlers(securityHandlers...),
@@ -60,16 +61,16 @@ func (that *WSSandBox) Setup() error {
 					return conn, nil
 				}),
 			)
-			play := vnc.NewPlayer(that.cfg.GetString("rfbFile"), svrSession)
+			play := vnc.NewPlayer(that.cfg.MustGet(context.TODO(), "rfbFile").String(), svrSession)
 			err := play.Start()
 			if err != nil {
-				glog.Warning(err)
+				glog.Warning(context.TODO(), err)
 				return
 			}
 			for {
 				select {
 				case err = <-play.Error():
-					glog.Warning(err)
+					glog.Warning(context.TODO(), err)
 					return
 				case <-play.Wait():
 					return
@@ -78,7 +79,7 @@ func (that *WSSandBox) Setup() error {
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})
-	that.svr.SetAddr(fmt.Sprintf("%s:%d", that.cfg.GetString("wsHost"), that.cfg.GetInt("wsPort")))
+	that.svr.SetAddr(fmt.Sprintf("%s:%d", that.cfg.MustGet(context.TODO(), "wsHost").String(), that.cfg.MustGet(context.TODO(), "wsPort").Int()))
 	return that.svr.Start()
 }
 

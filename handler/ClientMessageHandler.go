@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
+	"golang.org/x/net/context"
 )
 
 // ClientMessageHandler vnc握手已结束，进入消息交互阶段
@@ -17,7 +18,7 @@ type ClientMessageHandler struct{}
 
 func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debug("[Proxy客户端->VNC服务端]: vnc握手已结束，进入消息交互阶段[ClientMessageHandler]")
+		logger.Debug(context.TODO(), "[Proxy客户端->VNC服务端]: vnc握手已结束，进入消息交互阶段[ClientMessageHandler]")
 	}
 	cfg := session.Options()
 	var err error
@@ -36,7 +37,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 				return
 			case msg := <-cfg.Input:
 				if logger.IsDebug() {
-					logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
+					logger.Debugf(context.TODO(), "[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
 				}
 				if err = msg.Write(session); err != nil {
 					cfg.ErrorCh <- err
@@ -61,7 +62,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s", rfb.ServerMessageType(messageType))
+					logger.Debugf(context.TODO(), "[VNC服务端->Proxy客户端] 消息类型:%s", rfb.ServerMessageType(messageType))
 				}
 				// 判断proxy客户端是否支持该消息
 				msg, ok := serverMessages[messageType]
@@ -79,7 +80,7 @@ func (*ClientMessageHandler) Handle(session rfb.ISession) error {
 					return
 				}
 				if logger.IsDebug() {
-					logger.Debugf("[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(parsedMsg.Type()), parsedMsg)
+					logger.Debugf(context.TODO(), "[VNC服务端->Proxy客户端] 消息类型:%s,消息内容:%s", rfb.ServerMessageType(parsedMsg.Type()), parsedMsg)
 				}
 				cfg.Output <- parsedMsg
 			}

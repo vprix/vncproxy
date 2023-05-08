@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/text/gstr"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/gfile"
+	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
+	"golang.org/x/net/context"
 	"os"
 )
 
@@ -71,21 +73,21 @@ func main() {
 			return true
 		})
 		cfg := svr.Config()
-		rbsFile := svr.CmdParser().GetOptVar("rbsFile", "")
+		rbsFile := svr.CmdParser().GetOpt("rbsFile", "")
 		if len(rbsFile.String()) <= 0 || !gfile.Exists(rbsFile.String()) {
 			svr.Help()
 			os.Exit(0)
 		}
-		_ = cfg.Set("rbsFile", rbsFile.String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("rbsFile", rbsFile.String())
 
-		logger.SetDebug(cfg.GetBool("Debug"))
+		logger.SetDebug(cfg.MustGet(context.TODO(), "Debug").Bool())
 
-		_ = cfg.Set("tcpHost", svr.CmdParser().GetOptVar("tcpHost", "0.0.0.0"))
-		_ = cfg.Set("tcpPort", svr.CmdParser().GetOptVar("tcpPort", 8989))
-		_ = cfg.Set("proxyPassword", svr.CmdParser().GetOptVar("proxyPassword", ""))
-		_ = cfg.Set("wsHost", svr.CmdParser().GetOptVar("wsHost", "0.0.0.0"))
-		_ = cfg.Set("wsPort", svr.CmdParser().GetOptVar("wsPort", 8988))
-		_ = cfg.Set("wsPath", svr.CmdParser().GetOptVar("wsPath", "/"))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpHost", svr.CmdParser().GetOpt("tcpHost", "0.0.0.0"))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpPort", svr.CmdParser().GetOpt("tcpPort", 8989))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("proxyPassword", svr.CmdParser().GetOpt("proxyPassword", ""))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsHost", svr.CmdParser().GetOpt("wsHost", "0.0.0.0"))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPort", svr.CmdParser().GetOpt("wsPort", 8988))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPath", svr.CmdParser().GetOpt("wsPath", "/"))
 
 		if svr.SandboxNames().ContainsI("tcpserver") {
 			svr.AddSandBox(NewTcpSandBox(cfg))

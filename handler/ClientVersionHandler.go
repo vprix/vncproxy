@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
@@ -15,7 +16,7 @@ type ClientVersionHandler struct{}
 
 func (*ClientVersionHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debugf("[Proxy客户端->VNC服务端]: 执行vnc握手第一步:[Version]")
+		logger.Debugf(context.TODO(), "[Proxy客户端->VNC服务端]: 执行vnc握手第一步:[Version]")
 	}
 	var version [rfb.ProtoVersionLength]byte
 

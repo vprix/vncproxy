@@ -5,7 +5,7 @@ import (
 	"crypto/des"
 	"encoding/binary"
 	"fmt"
-	"github.com/gogf/gf/util/grand"
+	"github.com/gogf/gf/v2/util/grand"
 	"github.com/vprix/vncproxy/rfb"
 )
 

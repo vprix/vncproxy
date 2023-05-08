@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/gogf/gf/os/gcfg"
-	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/os/gtime"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/gfile"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/osgochina/dmicro/easyservice"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
@@ -13,6 +13,7 @@ import (
 	"github.com/vprix/vncproxy/security"
 	"github.com/vprix/vncproxy/session"
 	"github.com/vprix/vncproxy/vnc"
+	"golang.org/x/net/context"
 	"io"
 	"net"
 	"os"
@@ -50,12 +51,12 @@ func (that *RecorderSandBox) Name() string {
 }
 
 func (that *RecorderSandBox) Setup() error {
-	saveFilePath := that.cfg.GetString("rbsFile")
+	saveFilePath := that.cfg.MustGet(context.TODO(), "rbsFile").String()
 	targetCfg := rfb.TargetConfig{
 		Network:  "tcp",
-		Host:     that.cfg.GetString("vncHost"),
-		Port:     that.cfg.GetInt("vncPort"),
-		Password: that.cfg.GetBytes("vncPassword"),
+		Host:     that.cfg.MustGet(context.TODO(), "vncHost").String(),
+		Port:     that.cfg.MustGet(context.TODO(), "vncPort").Int(),
+		Password: that.cfg.MustGet(context.TODO(), "vncPassword").Bytes(),
 		Timeout:  10 * time.Second,
 	}
 	var securityHandlers = []rfb.ISecurityHandler{
@@ -97,13 +98,13 @@ func (that *RecorderSandBox) Setup() error {
 	go func() {
 		err := that.recorder.Start()
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatal(context.TODO(), err)
 		}
 	}()
 	for {
 		select {
 		case err := <-that.recorder.Error():
-			logger.Error(err)
+			logger.Error(context.TODO(), err)
 		case <-that.recorder.Wait():
 			return nil
 		}

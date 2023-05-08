@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/rfb"
@@ -13,7 +14,7 @@ type ServerClientInitHandler struct{}
 func (*ServerClientInitHandler) Handle(session rfb.ISession) error {
 
 	if logger.IsDebug() {
-		logger.Debugf("[VNC客户端->Proxy服务端]: 执行vnc握手第三步:[ClientInit]")
+		logger.Debugf(context.TODO(), "[VNC客户端->Proxy服务端]: 执行vnc握手第三步:[ClientInit]")
 	}
 	// 读取分享屏幕标识符，proxy会无视该标识，因为通过proxy链接的vnc服务端都是默认支持分享的。
 	var shared uint8

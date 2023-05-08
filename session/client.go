@@ -2,8 +2,9 @@ package session
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"github.com/gogf/gf/container/gmap"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/osgochina/dmicro/logger"
 	"github.com/vprix/vncproxy/encodings"
 	"github.com/vprix/vncproxy/handler"
@@ -146,7 +147,7 @@ func (that *ClientSession) SetEncodings(encs []rfb.EncodingType) error {
 		Encodings: encs,
 	}
 	if logger.IsDebug() {
-		logger.Debugf("[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
+		logger.Debugf(context.TODO(), "[Proxy客户端->VNC服务端] 消息类型:%s,消息内容:%s", rfb.ClientMessageType(msg.Type()), msg.String())
 	}
 	return msg.Write(that)
 }

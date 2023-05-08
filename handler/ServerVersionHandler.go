@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
@@ -15,7 +16,7 @@ type ServerVersionHandler struct{}
 
 func (*ServerVersionHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debugf("[VNC客户端->Proxy服务端]: 执行vnc握手第一步:[Version]")
+		logger.Debugf(context.TODO(), "[VNC客户端->Proxy服务端]: 执行vnc握手第一步:[Version]")
 	}
 	var version [rfb.ProtoVersionLength]byte
 	if err := binary.Write(session, binary.BigEndian, []byte(rfb.ProtoVersion38)); err != nil {

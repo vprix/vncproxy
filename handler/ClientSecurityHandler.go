@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/osgochina/dmicro/logger"
@@ -16,7 +17,7 @@ type ClientSecurityHandler struct{}
 
 func (*ClientSecurityHandler) Handle(session rfb.ISession) error {
 	if logger.IsDebug() {
-		logger.Debugf("[Proxy客户端->VNC服务端]: 执行vnc握手第二步:[Security]")
+		logger.Debugf(context.TODO(), "[Proxy客户端->VNC服务端]: 执行vnc握手第二步:[Security]")
 	}
 	cfg := session.Options()
 	// 读取vnc服务端支持的安全认证套件数量
@@ -61,7 +62,7 @@ func (*ClientSecurityHandler) Handle(session rfb.ISession) error {
 		return err
 	}
 	if logger.IsDebug() {
-		logger.Debugf("安全认证中, 安全认证套件类型: %d,认证结果(0为成功): %d", rfb.ClientMessageType(secType.Type()), authCode)
+		logger.Debugf(context.TODO(), "安全认证中, 安全认证套件类型: %d,认证结果(0为成功): %d", rfb.ClientMessageType(secType.Type()), authCode)
 	}
 	//如果认证失败，则读取失败原因
 	if authCode == 1 {
