@@ -67,15 +67,7 @@ func (that *WSSandBox) Setup() error {
 				glog.Warning(context.TODO(), err)
 				return
 			}
-			for {
-				select {
-				case err = <-play.Error():
-					glog.Warning(context.TODO(), err)
-					return
-				case <-play.Wait():
-					return
-				}
-			}
+			glog.Info(context.TODO(), "play session end")
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})

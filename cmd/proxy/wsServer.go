@@ -82,23 +82,14 @@ func (that *WSSandBox) Setup() error {
 				}),
 			)
 			p := vnc.NewVncProxy(cliSess, svrSess)
+			remoteKey := conn.RemoteAddr().String()
+			that.proxyHub.Set(remoteKey, p)
 			err = p.Start()
 			if err != nil {
 				glog.Warning(context.TODO(), err)
 				return
 			}
-			remoteKey := conn.RemoteAddr().String()
-			that.proxyHub.Set(remoteKey, p)
-			for {
-				select {
-				case err = <-p.Error():
-					glog.Warning(context.TODO(), err)
-					that.proxyHub.Remove(remoteKey)
-					return
-				case <-p.Wait():
-					return
-				}
-			}
+			glog.Info(context.TODO(), "proxy session end")
 		})
 		h.ServeHTTP(r.Response.Writer, r.Request)
 	})

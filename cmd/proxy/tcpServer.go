@@ -104,27 +104,14 @@ func (that *TcpSandBox) Setup() error {
 				}),
 			)
 			p := vnc.NewVncProxy(cliSess, svrSess)
+			remoteKey := c.RemoteAddr().String()
+			that.proxyHub.Set(remoteKey, p)
 			err = p.Start()
 			if err != nil {
 				glog.Warning(context.TODO(), err)
 				return
 			}
-			remoteKey := c.RemoteAddr().String()
-			that.proxyHub.Set(remoteKey, p)
-			for {
-				select {
-				case err = <-p.Error():
-					glog.Warning(context.TODO(), err)
-					p.Close()
-					that.proxyHub.Remove(remoteKey)
-					return
-				case <-that.closed:
-					p.Close()
-					return
-				case <-p.Wait():
-					return
-				}
-			}
+			glog.Info(context.TODO(), "proxy session closed")
 		}(conn)
 
 	}

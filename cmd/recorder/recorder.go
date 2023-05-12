@@ -95,30 +95,17 @@ func (that *RecorderSandBox) Setup() error {
 		rfb.OptSecurityHandlers(securityHandlers...),
 	)
 	that.recorder = vnc.NewRecorder(recorderSess, cliSession)
-	go func() {
-		err := that.recorder.Start()
-		if err != nil {
-			logger.Fatal(context.TODO(), err)
-		}
-	}()
-	for {
-		select {
-		case err := <-that.recorder.Error():
-			logger.Error(context.TODO(), err)
-		case <-that.recorder.Wait():
-			return nil
-		}
+	err := that.recorder.Start()
+	if err != nil {
+		logger.Fatal(context.TODO(), err)
 	}
+	return err
 }
 
 func (that *RecorderSandBox) Shutdown() error {
 	close(that.closed)
 	that.recorder.Close()
 	return nil
-}
-
-func (that *RecorderSandBox) Error() <-chan error {
-	return that.recorder.Error()
 }
 
 func (that *RecorderSandBox) Service() *easyservice.EasyService {

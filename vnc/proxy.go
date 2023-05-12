@@ -138,4 +138,6 @@ func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 
 func (that *Proxy) Close() {
 	that.closed.Set(true)
+	_ = that.svrSession.Close()
+	_ = that.remoteSession.Close()
 }

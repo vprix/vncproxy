@@ -87,18 +87,7 @@ func (that *TcpSandBox) Setup() error {
 				glog.Warning(context.TODO(), err)
 				return
 			}
-			for {
-				select {
-				case err = <-play.Error():
-					glog.Warning(context.TODO(), err)
-					return
-				case <-that.closed:
-					play.Close()
-					return
-				case <-play.Wait():
-					return
-				}
-			}
+			glog.Info(context.TODO(), "play finished")
 		}(conn)
 
 	}

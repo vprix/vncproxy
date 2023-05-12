@@ -119,6 +119,8 @@ func (that *Video) Start() error {
 					return err
 				}
 			}
+		case err = <-that.cliCfg.ErrorCh:
+			return err
 		}
 	}
 }
@@ -127,8 +129,4 @@ func (that *Video) Close() {
 	_ = that.cliSession.Close()
 	_ = that.canvasSession.Close()
 
-}
-
-func (that *Video) Error() <-chan error {
-	return that.cliCfg.ErrorCh
 }
