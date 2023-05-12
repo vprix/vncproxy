@@ -1,6 +1,7 @@
 package vnc
 
 import (
+	"github.com/gogf/gf/v2/container/gtype"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/vprix/vncproxy/handler"
 	"github.com/vprix/vncproxy/messages"
@@ -11,9 +12,8 @@ import (
 type Proxy struct {
 	remoteSession rfb.ISession // 链接到vnc远端服务的会话
 	svrSession    rfb.ISession // vnc客户端连接到proxy的会话
-
-	errorCh chan error
-	closed  chan struct{}
+	errorCh       chan error
+	closed        *gtype.Bool
 }
 
 // NewVncProxy 生成vnc proxy服务对象
@@ -21,8 +21,9 @@ func NewVncProxy(remoteSession *session.ClientSession, serverSession *session.Se
 	vncProxy := &Proxy{
 		svrSession:    serverSession,
 		remoteSession: remoteSession,
-		errorCh:       make(chan error, 1024),
-		closed:        make(chan struct{}),
+		// 这里选择8是随便选的,后期应该会改
+		errorCh: make(chan error, 8),
+		closed:  gtype.NewBool(false),
 	}
 	return vncProxy
 }
@@ -45,21 +46,21 @@ func (that *Proxy) Start() error {
 		return err
 	}
 	that.svrSession.Start()
-	return nil
+	err = <-that.errorCh
+	return err
 }
 
 func (that *Proxy) handleIO() {
-	for {
+	for that.closed.Val() == false {
 		select {
-		case <-that.Wait():
-			return
 		case msg := <-that.remoteSession.Options().ErrorCh:
 			// 如果链接到vnc服务端的会话报错，则需要把链接到proxy的vnc客户端全部关闭
-			_ = that.svrSession.Close()
 			that.errorCh <- msg
+			_ = that.svrSession.Close()
 		case msg := <-that.svrSession.Options().ErrorCh:
 			//  链接到proxy的vnc客户端链接报错，则把错误转发给vnc proxy
 			that.errorCh <- msg
+			_ = that.remoteSession.Close()
 		case msg := <-that.remoteSession.Options().Output:
 			// 收到vnc服务端发送给proxy客户端的消息，转发给proxy服务端, proxy服务端内部会把该消息转发给vnc客户端
 			sSessCfg := that.svrSession.Options()
@@ -111,6 +112,7 @@ func (that *Proxy) handleIO() {
 			}
 		}
 	}
+	that.errorCh <- nil
 }
 
 // Handle 建立远程链接
@@ -134,14 +136,6 @@ func (that *Proxy) Handle(sess rfb.ISession) (err error) {
 	return nil
 }
 
-func (that *Proxy) Wait() <-chan struct{} {
-	return that.closed
-}
-
 func (that *Proxy) Close() {
-	that.closed <- struct{}{}
-}
-
-func (that *Proxy) Error() <-chan error {
-	return that.errorCh
+	that.closed.Set(true)
 }
