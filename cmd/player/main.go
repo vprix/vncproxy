@@ -82,12 +82,12 @@ func main() {
 
 		logger.SetDebug(cfg.MustGet(context.TODO(), "Debug").Bool())
 
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpHost", svr.CmdParser().GetOpt("tcpHost", "0.0.0.0"))
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpPort", svr.CmdParser().GetOpt("tcpPort", 8989))
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("proxyPassword", svr.CmdParser().GetOpt("proxyPassword", ""))
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsHost", svr.CmdParser().GetOpt("wsHost", "0.0.0.0"))
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPort", svr.CmdParser().GetOpt("wsPort", 8988))
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPath", svr.CmdParser().GetOpt("wsPath", "/"))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpHost", svr.CmdParser().GetOpt("tcpHost", "0.0.0.0").String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("tcpPort", svr.CmdParser().GetOpt("tcpPort", 8989).Int())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("proxyPassword", svr.CmdParser().GetOpt("proxyPassword", "").String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsHost", svr.CmdParser().GetOpt("wsHost", "0.0.0.0").String())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPort", svr.CmdParser().GetOpt("wsPort", 8988).Int())
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("wsPath", svr.CmdParser().GetOpt("wsPath", "/").String())
 
 		if svr.SandboxNames().ContainsI("tcpserver") {
 			svr.AddSandBox(NewTcpSandBox(cfg))

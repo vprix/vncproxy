@@ -81,7 +81,7 @@ func main() {
 		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("rbsFile", rbsFile.String())
 		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncHost", vncHost.String())
 		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncPort", vncPort.Int())
-		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncPassword", svr.CmdParser().GetOpt("vncPassword", ""))
+		_ = cfg.GetAdapter().(*gcfg.AdapterFile).Set("vncPassword", svr.CmdParser().GetOpt("vncPassword", "").String())
 
 		logger.SetDebug(cfg.MustGet(context.TODO(), "Debug").Bool())
 
